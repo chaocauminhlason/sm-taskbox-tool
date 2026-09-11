@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.0.0
+// @version      2.1.0
 // @description  Tự động đọc Google Sheet (theo URL Tab) và điền / đồng bộ chính xác Taskbox lên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -435,6 +435,30 @@
     'mayin3dtukythuat': '003717'
   };
 
+  
+  // --- CURRENT LOGGED-IN USER HELPER ---
+  function getLoggedInUser() {
+    try {
+      if (typeof window.ME === 'string' && window.ME.trim()) return window.ME.trim();
+      if (typeof window.username === 'string' && window.username.trim()) return window.username.trim();
+      
+      const navStrong = document.querySelector('.nav-link strong, .navbar strong, #indexInventoryReturner');
+      if (navStrong) {
+        const val = (navStrong.value || navStrong.textContent || '').trim();
+        const m = val.match(/^([a-zA-Z0-9_-]+)/);
+        if (m) return m[1].trim();
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('objectInventoryCart:')) {
+          const u = k.replace('objectInventoryCart:', '').trim();
+          if (u) return u;
+        }
+      }
+    } catch (e) {}
+    return '';
+  }
+
   function removeVietnameseTones(str) {
     str = str || '';
     str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -760,6 +784,12 @@
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="assigned" style="background:#0369a1; color:#bae6fd;">Đã gán (assigned)</button>
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="created" style="background:#312e81; color:#a5b4fc;">Mới tạo (created)</button>
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="all">Tất cả</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">👤 Tài khoản:</span>
+              <button type="button" class="sm-pill-btn sm-web-user-pill sm-pill-active" data-user="all">👥 Tất cả người dùng</button>
+              <button type="button" class="sm-pill-btn sm-web-user-pill" data-user="me" style="background:#065f46; color:#a7f3d0;" id="sm-web-user-me-btn">⭐ Chỉ box của tôi</button>
 
               <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:320px;">
                 <input type="text" id="sm-web-search-input" class="sm-input-control" placeholder="🔍 Tìm Module, tên box, ID người..." style="padding:4px 10px; font-size:12px; width:100%; height:28px;" />
@@ -1049,9 +1079,11 @@
       renderAssigneeInputs(detectedModules);
 
       // 2. Fetch Server Boxes
-      const resp = await fetch('/api/boxes?limit=300');
+      const resp = await fetch('/api/boxes?limit=500');
       const data = await resp.json();
       serverBoxesCache = data.boxes || data || [];
+      // Sort newest first
+      serverBoxesCache.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
       // 3. Compare
       comparisonResults = [];
@@ -1082,12 +1114,17 @@
           continue;
         }
 
-        // Match server box
+        // Match server box (Exact Module & Stage Match)
         const matches = serverBoxesCache.filter(b => {
           const bt = (b.title || '').trim().toUpperCase();
           const mod = tb.module.toUpperCase();
           const st = tb.stage.toUpperCase();
-          return bt.includes(mod) && bt.endsWith(st) && b.status !== 'deactivated';
+          
+          // Exact module prefix regex (prevents M12 from matching M12-01)
+          const escapedMod = mod.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const modRegex = new RegExp(`^${escapedMod}(\\s|\\(|${st}|$)`, 'i');
+          
+          return modRegex.test(bt) && bt.endsWith(st) && b.status !== 'deactivated';
         });
 
         const activeMatch = matches.find(b => b.status === 'assigned' || b.status === 'created');
@@ -1676,11 +1713,11 @@
   function formatDateVN(dateVal) {
     if (!dateVal) {
       const now = new Date();
-      return now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      return now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return String(dateVal);
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   function openQRPrintWindow(items) {
@@ -1992,6 +2029,7 @@
   let filteredWebBoxes = [];
   let currentWebDateFilter = 'today';
   let currentWebStatusFilter = 'active';
+  let currentWebUserFilter = 'all';
 
   function getBoxLocalDateStr(dateVal) {
     if (!dateVal) return '';
@@ -2012,9 +2050,17 @@
     }
 
     try {
+      const currentMe = getLoggedInUser();
+      const meBtn = document.getElementById('sm-web-user-me-btn');
+      if (meBtn && currentMe) {
+        meBtn.textContent = `⭐ Chỉ box của tôi (${currentMe})`;
+      }
+
       const resp = await fetch('/api/boxes?limit=500');
       const data = await resp.json();
       rawWebBoxesCache = data.boxes || data || [];
+      // Sort newest first
+      rawWebBoxesCache.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       filterWebBoxes();
     } catch (err) {
       alert('Lỗi khi tải TaskBox từ Scenario Manager: ' + err.message);
@@ -2043,6 +2089,19 @@
       if (currentWebStatusFilter === 'collected' && b.status !== 'collected') return false;
       if (currentWebStatusFilter === 'assigned' && b.status !== 'assigned') return false;
       if (currentWebStatusFilter === 'created' && b.status !== 'created') return false;
+
+      // 1b. User Filter (My Boxes vs All)
+      if (currentWebUserFilter === 'me') {
+        const me = (getLoggedInUser() || '').toLowerCase();
+        if (me) {
+          const createdBy = (b.created_by || '').toLowerCase();
+          const assignee = (b.assignee || '').toLowerCase();
+          const holder = (b.current_holder || b.borrower || '').toLowerCase();
+          const people = (b.people || []).map(p => (p.user_id || '').toLowerCase());
+          const isMyBox = (createdBy === me || assignee === me || holder === me || people.includes(me));
+          if (!isMyBox) return false;
+        }
+      }
 
       // 2. Date Filter
       const boxDateStr = getBoxLocalDateStr(b.created_at);
@@ -2406,6 +2465,16 @@
       document.querySelectorAll('.sm-web-status-pill').forEach(p => p.classList.remove('sm-pill-active'));
       pill.classList.add('sm-pill-active');
       currentWebStatusFilter = pill.getAttribute('data-status');
+      filterWebBoxes();
+    });
+  });
+
+  // User filter pills
+  document.querySelectorAll('.sm-web-user-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.sm-web-user-pill').forEach(p => p.classList.remove('sm-pill-active'));
+      pill.classList.add('sm-pill-active');
+      currentWebUserFilter = pill.getAttribute('data-user');
       filterWebBoxes();
     });
   });
