@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.3.0
+// @version      2.4.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -722,7 +722,7 @@
       <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
       <path d="M16 21h5v-5"/>
     </svg>
-    <span>Sync Sheet Taskbox</span>
+    <span>Quản Lý TaskBox</span>
   `;
   safeAppend(floatingBtn);
 
@@ -732,8 +732,8 @@
     <div id="sm-sync-modal">
       <div class="sm-sync-header">
         <h2>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          Scenario Manager TaskBox Tool (Sheet Sync & Live Web Manager)
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Hệ Thống Quản Lý & Đồng Bộ TaskBox
         </h2>
         <div style="display: flex; align-items: center; gap: 6px;">
           <button class="sm-sync-header-btn" id="sm-modal-maximize" title="Phóng to / Thu nhỏ (Maximize)">
@@ -746,11 +746,11 @@
       <div class="sm-tabs-bar">
         <button type="button" class="sm-tab-btn sm-tab-active" id="sm-tab-btn-sheet">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          1. Đồng bộ từ Google Sheet
+          Đồng Bộ Google Sheets
         </button>
         <button type="button" class="sm-tab-btn" id="sm-tab-btn-web">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          2. Quản lý & Bàn giao / Trả đồ (Từ Web)
+          Quản Lý TaskBox (Web)
         </button>
       </div>
 
@@ -758,20 +758,19 @@
         <!-- TAB 1: GOOGLE SHEET SYNC -->
         <div id="sm-tab-pane-sheet" class="sm-tab-pane">
           <div class="sm-input-group">
-            <label>Link URL Google Sheet Tab (Tab người soạn đồ, vd Sơn / Tiến / Quân / Giang / Mạnh / Hưng):</label>
-            <input type="text" id="sm-sheet-url" class="sm-input-control" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=1060497124#gid=1060497124" />
+            <label>Liên kết Google Sheet (Tab phân công người soạn):</label>
+            <input type="text" id="sm-sheet-url" class="sm-input-control" placeholder="Dán liên kết Google Sheet tại đây (vd: https://docs.google.com/spreadsheets/d/...)" />
           </div>
 
           <div class="sm-card" id="sm-assignee-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
               <div style="display:flex; align-items:center; gap:8px;">
-                <h3 style="margin:0; font-size:13.5px; font-weight:600; color:#93c5fd;">Phân công Assignee ID cho từng Module:</h3>
-                <button type="button" class="sm-pill-btn" id="sm-assignee-toggle-btn" style="background:#334155; font-size:11px;">🔽 Thu gọn</button>
-                <button type="button" class="sm-pill-btn" id="sm-assignee-apply-me-btn" style="background:#065f46; color:#a7f3d0; font-size:11px;" title="Áp dụng ID tài khoản đang đăng nhập cho tất cả module">👤 Gán ID của tôi cho tất cả</button>
+                <h3 style="margin:0; font-size:13px; font-weight:600; color:#93c5fd;">Cấu hình người nhận (Assignee theo Module):</h3>
+                <button type="button" class="sm-pill-btn" id="sm-assignee-toggle-btn" style="background:#334155; font-size:11px;">Thu gọn</button>
               </div>
               <label style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;">
                 <input type="checkbox" id="sm-auto-assign-check" style="cursor:pointer;" />
-                <span>Chuyển sang <b>"assigned"</b> ngay sau khi tạo</span>
+                <span>Tự động chuyển sang trạng thái <b>"Assigned"</b> sau khi tạo</span>
               </label>
             </div>
             <div class="sm-assignee-grid" id="sm-assignee-container">
@@ -784,15 +783,15 @@
 
           <div class="sm-toolbar-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-              <span style="font-size:12px; font-weight:600; color:#94a3b8;">Chọn nhanh:</span>
+              <span style="font-size:12px; font-weight:600; color:#94a3b8;">Bộ lọc nhanh:</span>
               <button type="button" class="sm-pill-btn" id="sm-sel-all">Tất cả</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-actionable" style="background:#1e3a8a; color:#93c5fd;">⚡ Cần tạo/sửa</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-created" style="background:#312e81; color:#a5b4fc;">Chưa Assign</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-assigned" style="background:#0369a1; color:#bae6fd;">Cần Mượn</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-collected" style="background:#7f1d1d; color:#fecaca;">Cần Trả</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-b2">Chỉ B2</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-b3">Chỉ B3</button>
-              <button type="button" class="sm-pill-btn" id="sm-sel-a1">Chỉ A1</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-actionable" style="background:#1e3a8a; color:#93c5fd;">Cần xử lý</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-created" style="background:#312e81; color:#a5b4fc;">Chưa gán</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-assigned" style="background:#0369a1; color:#bae6fd;">Đã gán</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-collected" style="background:#7f1d1d; color:#fecaca;">Đang mượn</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-b2">B2</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-b3">B3</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-a1">A1</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-none">Bỏ chọn</button>
             </div>
             <div id="sm-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8;">
@@ -806,20 +805,20 @@
                 <tr>
                   <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-th-select-all" checked /></th>
                   <th>Module</th>
-                  <th>Stage</th>
-                  <th>Tên Taskbox</th>
+                  <th>Giai đoạn</th>
+                  <th>Tên TaskBox</th>
                   <th>Anchor ID</th>
-                  <th>Số Items (Sheet)</th>
+                  <th>Số món</th>
                   <th>Tổng SL</th>
-                  <th>Assignee</th>
-                  <th>Server Status</th>
-                  <th>Hành động</th>
+                  <th>Người nhận</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align: center;">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="sm-preview-tbody">
                 <tr>
                   <td colspan="10" style="text-align: center; color: #64748b; padding: 24px;">
-                    Nhập URL Tab Sheet và bấm <b>"Quét & Xem trước"</b> để kiểm tra dữ liệu đối chiếu trước khi đồng bộ.
+                    Nhập URL Tab Sheet và bấm <b>"Quét dữ liệu"</b> để kiểm tra dữ liệu đối chiếu trước khi đồng bộ.
                   </td>
                 </tr>
               </tbody>
@@ -833,15 +832,15 @@
             </span>
             <button class="sm-btn sm-btn-secondary" id="sm-btn-preview">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              Quét & Xem trước
+              Quét dữ liệu
             </button>
             <button class="sm-btn sm-btn-success" id="sm-btn-sync" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-              <span id="sm-sync-btn-text">Đồng bộ Đồ</span>
+              <span id="sm-sync-btn-text">Đồng bộ TaskBox</span>
             </button>
             <button class="sm-btn" id="sm-btn-assign-only" style="background:#4f46e5; color:white;" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              <span id="sm-assign-btn-text">Gán Assignee (0)</span>
+              <span id="sm-assign-btn-text">Gán người nhận (0)</span>
             </button>
             <button class="sm-btn" id="sm-btn-borrow-only" style="background:#0284c7; color:white;" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
@@ -863,7 +862,7 @@
           <!-- Filter Card -->
           <div class="sm-card" style="display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">📅 Lọc theo ngày:</span>
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">Thời gian:</span>
               <button type="button" class="sm-pill-btn sm-web-date-pill sm-pill-active" data-range="today">Hôm nay</button>
               <button type="button" class="sm-pill-btn sm-web-date-pill" data-range="yesterday">Hôm qua</button>
               <button type="button" class="sm-pill-btn sm-web-date-pill" data-range="last3days">3 ngày gần nhất</button>
@@ -874,26 +873,26 @@
               </div>
               <button type="button" class="sm-btn sm-btn-primary" id="sm-web-btn-fetch" style="margin-left:auto; padding:6px 14px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                Quét TaskBox từ Web
+                Quét dữ liệu Web
               </button>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
-              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">🏷️ Trạng thái:</span>
-              <button type="button" class="sm-pill-btn sm-web-status-pill sm-pill-active" data-status="active">Chưa trả (Active)</button>
-              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="collected" style="background:#7f1d1d; color:#fecaca;">Đang mượn (collected)</button>
-              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="assigned" style="background:#0369a1; color:#bae6fd;">Đã gán (assigned)</button>
-              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="created" style="background:#312e81; color:#a5b4fc;">Mới tạo (created)</button>
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">Trạng thái:</span>
+              <button type="button" class="sm-pill-btn sm-web-status-pill sm-pill-active" data-status="active">Đang hoạt động</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="collected" style="background:#7f1d1d; color:#fecaca;">Đang mượn</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="assigned" style="background:#0369a1; color:#bae6fd;">Đã gán</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="created" style="background:#312e81; color:#a5b4fc;">Mới tạo</button>
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="all">Tất cả</button>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
-              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">👤 Tài khoản:</span>
-              <button type="button" class="sm-pill-btn sm-web-user-pill sm-pill-active" data-user="all">👥 Tất cả người dùng</button>
-              <button type="button" class="sm-pill-btn sm-web-user-pill" data-user="me" style="background:#065f46; color:#a7f3d0;" id="sm-web-user-me-btn">⭐ Chỉ box của tôi</button>
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">Phạm vi:</span>
+              <button type="button" class="sm-pill-btn sm-web-user-pill sm-pill-active" data-user="all">Tất cả người dùng</button>
+              <button type="button" class="sm-pill-btn sm-web-user-pill" data-user="me" style="background:#065f46; color:#a7f3d0;" id="sm-web-user-me-btn">Chỉ của tôi</button>
 
-              <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:320px;">
-                <input type="text" id="sm-web-search-input" class="sm-input-control" placeholder="🔍 Tìm Module, tên box, ID người..." style="padding:4px 10px; font-size:12px; width:100%; height:28px;" />
+              <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:340px;">
+                <input type="text" id="sm-web-search-input" class="sm-input-control" placeholder="Tìm theo Module, Tên box, Người giữ, Anchor..." style="padding:4px 10px; font-size:12px; width:100%; height:28px;" />
               </div>
             </div>
           </div>
@@ -902,17 +901,10 @@
           <div class="sm-card" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#0b1329; border-color:#3b82f6;">
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
               <span style="font-size:13px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:4px;">
-                🤝 Bàn giao (Handover):
+                Bàn giao ca:
               </span>
-              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:150px; padding:4px 8px; font-size:12.5px;" />
-              <div style="display:flex; gap:4px; align-items:center;">
-                <span style="font-size:11px; color:#94a3b8;">Gợi ý:</span>
-                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3409'">3409</button>
-                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3178'">3178</button>
-                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='2140'">2140</button>
-                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3122'">3122</button>
-              </div>
-              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú (tùy chọn)" style="width:150px; padding:4px 8px; font-size:12.5px;" />
+              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:160px; padding:4px 10px; font-size:12.5px;" />
+              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú bàn giao (tùy chọn)" style="width:200px; padding:4px 10px; font-size:12.5px;" />
               <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 14px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span id="sm-web-handover-text">Bàn giao (0)</span>
@@ -957,15 +949,15 @@
               <thead>
                 <tr>
                   <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-web-th-select-all" /></th>
-                  <th>Box ID</th>
-                  <th>Tên Taskbox</th>
-                  <th>Module / Stage</th>
+                  <th>Mã Box</th>
+                  <th>Tên TaskBox</th>
+                  <th>Module / Giai đoạn</th>
                   <th>Anchor ID</th>
-                  <th>SL Đồ</th>
-                  <th>Người giữ / Assignee</th>
+                  <th>Tổng SL</th>
+                  <th>Người giữ</th>
                   <th>Ngày tạo</th>
                   <th>Trạng thái</th>
-                  <th style="text-align: center;">Hành động</th>
+                  <th style="text-align: center;">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="sm-web-tbody">
@@ -1091,13 +1083,13 @@
     const pillAll = document.getElementById('sm-sel-all');
     if (pillAll) pillAll.textContent = `Tất cả (${totalSelectable})`;
     const pillAction = document.getElementById('sm-sel-actionable');
-    if (pillAction) pillAction.textContent = `⚡ Cần tạo/sửa (${actionableCount})`;
+    if (pillAction) pillAction.textContent = `Cần xử lý (${actionableCount})`;
     const pillCreated = document.getElementById('sm-sel-created');
-    if (pillCreated) pillCreated.textContent = `Chưa Assign (${createdCount})`;
+    if (pillCreated) pillCreated.textContent = `Chưa gán (${createdCount})`;
     const pillAssigned = document.getElementById('sm-sel-assigned');
-    if (pillAssigned) pillAssigned.textContent = `Cần Mượn (${assignedCount})`;
+    if (pillAssigned) pillAssigned.textContent = `Đã gán (${assignedCount})`;
     const pillCollected = document.getElementById('sm-sel-collected');
-    if (pillCollected) pillCollected.textContent = `Cần Trả (${collectedCount})`;
+    if (pillCollected) pillCollected.textContent = `Đang mượn (${collectedCount})`;
     if (syncBtnText) {
       syncBtnText.textContent = toSync.length > 0 ? `Đồng bộ (${toSync.length})` : `Đồng bộ Đồ`;
     }
@@ -1241,7 +1233,7 @@
       if (grid) {
         const isHidden = grid.style.display === 'none';
         grid.style.display = isHidden ? 'grid' : 'none';
-        e.target.textContent = isHidden ? '🔽 Thu gọn' : '▶️ Mở rộng';
+        e.target.textContent = isHidden ? 'Thu gọn' : 'Mở rộng';
       }
     });
 
@@ -1409,13 +1401,13 @@
         let lifecycleActionBtn = '';
         if (matchedBoxId) {
           if (serverStatus === 'created') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${i}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">👤 Gán</button>`;
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${i}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Gán</button>`;
           } else if (serverStatus === 'assigned') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${i}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">📦 Mượn</button>`;
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${i}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Mượn</button>`;
           } else if (serverStatus === 'collected') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${i}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">↩️ Trả</button>`;
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${i}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Trả</button>`;
           }
-          lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${i}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">🖨️ QR</button>`;
+          lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${i}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">Mã QR</button>`;
         }
 
         const tr = document.createElement('tr');
@@ -1464,12 +1456,12 @@
             } else {
               alert(`❌ Lỗi: ${trData.detail || 'Không thể gán assignee'}`);
               btn.disabled = false;
-              btn.textContent = '👤 Gán';
+              btn.textContent = 'Gán';
             }
           } catch (err) {
             alert('Lỗi kết nối: ' + err.message);
             btn.disabled = false;
-            btn.textContent = '👤 Gán';
+            btn.textContent = 'Gán';
           }
         });
       });
@@ -1497,12 +1489,12 @@
             } else {
               alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
               btn.disabled = false;
-              btn.textContent = '📦 Mượn';
+              btn.textContent = 'Mượn';
             }
           } catch (err) {
             alert('Lỗi kết nối: ' + err.message);
             btn.disabled = false;
-            btn.textContent = '📦 Mượn';
+            btn.textContent = 'Mượn';
           }
         });
       });
@@ -1530,12 +1522,12 @@
             } else {
               alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
               btn.disabled = false;
-              btn.textContent = '↩️ Trả';
+              btn.textContent = 'Trả';
             }
           } catch (err) {
             alert('Lỗi kết nối: ' + err.message);
             btn.disabled = false;
-            btn.textContent = '↩️ Trả';
+            btn.textContent = 'Trả';
           }
         });
       });
@@ -1578,7 +1570,7 @@
       btn.disabled = false;
       btn.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        Quét & Xem trước
+        Quét dữ liệu
       `;
     }
   });
@@ -2293,7 +2285,7 @@
       const currentMe = getLoggedInUser();
       const meBtn = document.getElementById('sm-web-user-me-btn');
       if (meBtn && currentMe) {
-        meBtn.textContent = `⭐ Chỉ box của tôi (${currentMe})`;
+        meBtn.textContent = `Chỉ của tôi (${currentMe})`;
       }
 
       const resp = await fetch('/api/boxes?limit=500');
@@ -2417,15 +2409,15 @@
 
       let actionBtns = '';
       if (status === 'collected' || status === 'assigned') {
-        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">🤝 Giao</button>`;
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">Bàn giao</button>`;
       }
       if (status === 'collected') {
-        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Trả đồ">↩️ Trả</button>`;
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Trả đồ">Trả</button>`;
       }
       if (status === 'assigned') {
-        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Mượn đồ">📦 Mượn</button>`;
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Mượn đồ">Mượn</button>`;
       }
-      actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-qr-btn" data-idx="${idx}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR">🖨️ QR</button>`;
+      actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-qr-btn" data-idx="${idx}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR">Mã QR</button>`;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -2492,12 +2484,12 @@
           } else {
             alert(`❌ Lỗi: ${data.detail || data.error || 'Không thể bàn giao'}`);
             btn.disabled = false;
-            btn.textContent = '🤝 Giao';
+            btn.textContent = 'Bàn giao';
           }
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
-          btn.textContent = '🤝 Giao';
+          btn.textContent = 'Bàn giao';
         }
       });
     });
@@ -2529,12 +2521,12 @@
           } else {
             alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
             btn.disabled = false;
-            btn.textContent = '↩️ Trả';
+            btn.textContent = 'Trả';
           }
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
-          btn.textContent = '↩️ Trả';
+          btn.textContent = 'Trả';
         }
       });
     });
@@ -2564,12 +2556,12 @@
           } else {
             alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
             btn.disabled = false;
-            btn.textContent = '📦 Mượn';
+            btn.textContent = 'Mượn';
           }
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
-          btn.textContent = '📦 Mượn';
+          btn.textContent = 'Mượn';
         }
       });
     });
