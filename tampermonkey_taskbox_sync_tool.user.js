@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.1.0
+// @version      2.2.0
 // @description  Tự động đọc Google Sheet (theo URL Tab) và điền / đồng bộ chính xác Taskbox lên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -73,6 +73,48 @@
     #sm-sync-modal::-webkit-resizer {
       background: linear-gradient(135deg, transparent 50%, #3b82f6 50%);
     }
+    
+    #sm-sync-modal.sm-modal-fullscreen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      border-radius: 0 !important;
+      border: none !important;
+      resize: none !important;
+    }
+    .sm-sync-header-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 16px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 6px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .sm-sync-header-btn:hover { color: #f8fafc; background: #334155; }
+    .sm-quick-chip {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #38bdf8;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sm-quick-chip:hover {
+      background: #3b82f6;
+      color: #ffffff;
+      border-color: #60a5fa;
+    }
+
     .sm-sync-header {
       padding: 14px 20px;
       background: #1e293b;
@@ -643,7 +685,12 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           Scenario Manager TaskBox Tool (Sheet Sync & Live Web Manager)
         </h2>
-        <button class="sm-sync-close-btn" id="sm-modal-close">&times;</button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="sm-sync-header-btn" id="sm-modal-maximize" title="Phóng to / Thu nhỏ (Maximize)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+          <button class="sm-sync-close-btn" id="sm-modal-close" title="Đóng (Esc)">&times;</button>
+        </div>
       </div>
 
       <div class="sm-tabs-bar">
@@ -665,9 +712,13 @@
             <input type="text" id="sm-sheet-url" class="sm-input-control" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=1060497124#gid=1060497124" />
           </div>
 
-          <div class="sm-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <h3 style="margin:0; font-size:14px; font-weight:600; color:#93c5fd;">Phân công Assignee ID cho từng Module (Tự động lưu lại):</h3>
+          <div class="sm-card" id="sm-assignee-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h3 style="margin:0; font-size:13.5px; font-weight:600; color:#93c5fd;">Phân công Assignee ID cho từng Module:</h3>
+                <button type="button" class="sm-pill-btn" id="sm-assignee-toggle-btn" style="background:#334155; font-size:11px;">🔽 Thu gọn</button>
+                <button type="button" class="sm-pill-btn" id="sm-assignee-apply-me-btn" style="background:#065f46; color:#a7f3d0; font-size:11px;" title="Áp dụng ID tài khoản đang đăng nhập cho tất cả module">👤 Gán ID của tôi cho tất cả</button>
+              </div>
               <label style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;">
                 <input type="checkbox" id="sm-auto-assign-check" style="cursor:pointer;" />
                 <span>Chuyển sang <b>"assigned"</b> ngay sau khi tạo</span>
@@ -803,8 +854,15 @@
               <span style="font-size:13px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:4px;">
                 🤝 Bàn giao (Handover):
               </span>
-              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới (vd: 3178, 2140)" style="width:210px; padding:4px 10px; font-size:12.5px;" />
-              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú (tùy chọn)" style="width:170px; padding:4px 10px; font-size:12.5px;" />
+              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:150px; padding:4px 8px; font-size:12.5px;" />
+              <div style="display:flex; gap:4px; align-items:center;">
+                <span style="font-size:11px; color:#94a3b8;">Gợi ý:</span>
+                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3409'">3409</button>
+                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3178'">3178</button>
+                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='2140'">2140</button>
+                <button type="button" class="sm-quick-chip" onclick="document.getElementById('sm-web-handover-receiver').value='3122'">3122</button>
+              </div>
+              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú (tùy chọn)" style="width:150px; padding:4px 8px; font-size:12.5px;" />
               <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 14px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span id="sm-web-handover-text">Bàn giao (0)</span>
@@ -973,6 +1031,23 @@
     if (countDisplay) {
       countDisplay.textContent = `Đã chọn: ${selectedCount} / ${totalSelectable} box`;
     }
+
+    // Dynamic counts on quick pill buttons
+    const actionableCount = comparisonResults.filter(r => r.action === 'CREATE' || r.action === 'UPDATE').length;
+    const createdCount = comparisonResults.filter(r => r.serverStatus === 'created').length;
+    const assignedCount = comparisonResults.filter(r => r.serverStatus === 'assigned').length;
+    const collectedCount = comparisonResults.filter(r => r.serverStatus === 'collected').length;
+
+    const pillAll = document.getElementById('sm-sel-all');
+    if (pillAll) pillAll.textContent = `Tất cả (${totalSelectable})`;
+    const pillAction = document.getElementById('sm-sel-actionable');
+    if (pillAction) pillAction.textContent = `⚡ Cần tạo/sửa (${actionableCount})`;
+    const pillCreated = document.getElementById('sm-sel-created');
+    if (pillCreated) pillCreated.textContent = `Chưa Assign (${createdCount})`;
+    const pillAssigned = document.getElementById('sm-sel-assigned');
+    if (pillAssigned) pillAssigned.textContent = `Cần Mượn (${assignedCount})`;
+    const pillCollected = document.getElementById('sm-sel-collected');
+    if (pillCollected) pillCollected.textContent = `Cần Trả (${collectedCount})`;
     if (syncBtnText) {
       syncBtnText.textContent = toSync.length > 0 ? `Đồng bộ (${toSync.length})` : `Đồng bộ Đồ`;
     }
@@ -1044,6 +1119,114 @@
   });
 
   // --- MODAL EVENTS ---
+  
+  // --- DRAGGABLE FLOATING BUTTON & SHORTCUTS ---
+  (function initFloatingButton() {
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    // Restore position if saved
+    try {
+      const savedPos = JSON.parse(localStorage.getItem('sm_sync_floating_pos') || 'null');
+      if (savedPos && savedPos.left && savedPos.top) {
+        floatingBtn.style.bottom = 'auto';
+        floatingBtn.style.right = 'auto';
+        floatingBtn.style.left = savedPos.left + 'px';
+        floatingBtn.style.top = savedPos.top + 'px';
+      }
+    } catch (e) {}
+
+    floatingBtn.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      isDragging = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = floatingBtn.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      function onMouseMove(moveEvent) {
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          isDragging = true;
+          floatingBtn.style.bottom = 'auto';
+          floatingBtn.style.right = 'auto';
+          const newLeft = Math.max(10, Math.min(window.innerWidth - floatingBtn.offsetWidth - 10, initialLeft + dx));
+          const newTop = Math.max(10, Math.min(window.innerHeight - floatingBtn.offsetHeight - 10, initialTop + dy));
+          floatingBtn.style.left = newLeft + 'px';
+          floatingBtn.style.top = newTop + 'px';
+        }
+      }
+
+      function onMouseUp() {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        if (isDragging) {
+          const rect = floatingBtn.getBoundingClientRect();
+          localStorage.setItem('sm_sync_floating_pos', JSON.stringify({ left: rect.left, top: rect.top }));
+        }
+      }
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    });
+
+    floatingBtn.addEventListener('click', (e) => {
+      if (isDragging) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }
+    });
+
+    // Maximize Modal Toggle
+    document.getElementById('sm-modal-maximize')?.addEventListener('click', () => {
+      const modal = document.getElementById('sm-sync-modal');
+      modal?.classList.toggle('sm-modal-fullscreen');
+    });
+
+    // Assignee Collapse Toggle
+    document.getElementById('sm-assignee-toggle-btn')?.addEventListener('click', (e) => {
+      const grid = document.getElementById('sm-assignee-container');
+      if (grid) {
+        const isHidden = grid.style.display === 'none';
+        grid.style.display = isHidden ? 'grid' : 'none';
+        e.target.textContent = isHidden ? '🔽 Thu gọn' : '▶️ Mở rộng';
+      }
+    });
+
+    // Assignee Apply My ID to all
+    document.getElementById('sm-assignee-apply-me-btn')?.addEventListener('click', () => {
+      const me = getLoggedInUser();
+      if (!me) {
+        alert('Chưa nhận diện được ID người dùng đang đăng nhập.');
+        return;
+      }
+      document.querySelectorAll('.sm-assignee-item input').forEach(input => {
+        input.value = me;
+        const mod = input.getAttribute('data-mod');
+        if (mod) savedAssignees[mod] = me;
+      });
+      localStorage.setItem('sm_sync_assignees', JSON.stringify(savedAssignees));
+      alert(`✅ Đã gán ID "${me}" cho tất cả module!`);
+    });
+
+    // Keyboard shortcut: Alt+S to toggle, Escape to close
+    window.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        const isOpen = modalOverlay.style.display === 'flex';
+        if (isOpen) {
+          modalOverlay.style.display = 'none';
+        } else {
+          floatingBtn.click();
+        }
+      } else if (e.key === 'Escape' && modalOverlay.style.display === 'flex') {
+        modalOverlay.style.display = 'none';
+      }
+    });
+  })();
+
   floatingBtn.addEventListener('click', () => {
     triggerStartFresh();
     modalOverlay.style.display = 'flex';
@@ -1186,6 +1369,13 @@
         }
 
         const tr = document.createElement('tr');
+        let rowBg = 'transparent';
+        if (action === 'CREATE') rowBg = 'rgba(16, 185, 129, 0.08)';
+        else if (action === 'UPDATE') rowBg = 'rgba(245, 158, 11, 0.08)';
+        else if (action === 'MATCH') rowBg = 'rgba(59, 130, 246, 0.06)';
+        else if (action === 'SKIP_COLLECTED') rowBg = 'rgba(239, 68, 68, 0.08)';
+        tr.style.background = rowBg;
+
         tr.innerHTML = `
           <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${i}" ${defaultChecked ? 'checked' : ''} /></td>
           <td><b>${tb.module}</b></td>
@@ -2190,8 +2380,8 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="text-align:center;"><input type="checkbox" class="sm-web-row-check" data-idx="${idx}" ${b.isSelected ? 'checked' : ''} /></td>
-        <td><code style="color:#a5f3fc; font-size:11px;">${boxId}</code></td>
-        <td><b>${title}</b></td>
+        <td><a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" style="color:#38bdf8; text-decoration:none; font-family:monospace; font-size:11px;" title="Mở chi tiết Box">${boxId} ↗</a></td>
+        <td><a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" style="color:#f8fafc; text-decoration:none; font-weight:700;" title="Mở chi tiết Box">${title}</a></td>
         <td><span style="color:#60a5fa; font-weight:600;">${mod}</span> <span style="color:#38bdf8; font-weight:700;">${stage}</span></td>
         <td><code>${anchor}</code></td>
         <td><b>${totalQty}</b> (${itemCount} items)</td>
