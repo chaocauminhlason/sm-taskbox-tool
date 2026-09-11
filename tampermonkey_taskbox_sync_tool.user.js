@@ -1,13 +1,20 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.2.0
-// @description  Tự động đọc Google Sheet (theo URL Tab) và điền / đồng bộ chính xác Taskbox lên Scenario Manager
+// @version      2.3.0
+// @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
+// @match        http://sm.config.inc/*
+// @connect      docs.google.com
+// @connect      google.com
+// @connect      googleusercontent.com
+// @connect      api.qrserver.com
+// @connect      *
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @run-at       document-end
 // ==/UserScript==
 
 (function () {
@@ -546,14 +553,46 @@
     return { docId, gid };
   }
 
-  async function fetchSheetCSV(url) {
-    const { docId, gid } = extractSheetUrlInfo(url);
-    if (!docId) throw new Error('URL Google Sheet không hợp lệ!');
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`;
-    const res = await fetch(exportUrl);
-    if (!res.ok) throw new Error(`Không thể tải dữ liệu Sheet (HTTP ${res.status}). Đảm bảo Sheet đã share quyền xem.`);
-    const text = await res.text();
-    return parseCSV(text);
+  function fetchSheetCSV(url) {
+    return new Promise((resolve, reject) => {
+      const { docId, gid } = extractSheetUrlInfo(url);
+      if (!docId) return reject(new Error('URL Google Sheet không hợp lệ! Vui lòng kiểm tra lại link.'));
+      const exportUrl = `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`;
+
+      if (typeof GM_xmlhttpRequest !== 'undefined') {
+        GM_xmlhttpRequest({
+          method: 'GET',
+          url: exportUrl,
+          onload: function (response) {
+            if (response.status >= 200 && response.status < 300) {
+              try {
+                const rows = parseCSV(response.responseText);
+                if (!rows || rows.length === 0) {
+                  reject(new Error('Google Sheet rỗng hoặc không có dữ liệu CSV!'));
+                } else {
+                  resolve(rows);
+                }
+              } catch (e) {
+                reject(new Error('Lỗi khi đọc định dạng CSV từ Sheet: ' + e.message));
+              }
+            } else {
+              reject(new Error(`Không thể tải dữ liệu Sheet (HTTP ${response.status}). Đảm bảo Sheet đã được Share quyền xem (Anyone with link can view).`));
+            }
+          },
+          onerror: function (err) {
+            reject(new Error('Lỗi kết nối khi tải Google Sheet: ' + (err.statusText || 'Network Error')));
+          }
+        });
+      } else {
+        fetch(exportUrl)
+          .then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.text();
+          })
+          .then(text => resolve(parseCSV(text)))
+          .catch(err => reject(new Error('Không thể tải Google Sheet (Lỗi CORS/Mạng). Hãy chắc chắn script chạy trên Tampermonkey có cấp quyền GM_xmlhttpRequest.')));
+      }
+    });
   }
 
   // --- PARSE TASKBOXES FROM CSV ---
@@ -662,6 +701,17 @@
     return parsedBoxes;
   }
 
+  // --- INJECT STYLES AND DOM ELEMENTS ---
+  function safeAppend(el) {
+    if (document.body) {
+      document.body.appendChild(el);
+    } else if (document.documentElement) {
+      document.documentElement.appendChild(el);
+    }
+  }
+
+  (document.head || document.documentElement).appendChild(style);
+
   // --- CREATE UI ELEMENTS ---
   const floatingBtn = document.createElement('button');
   floatingBtn.id = 'sm-sync-floating-btn';
@@ -674,7 +724,7 @@
     </svg>
     <span>Sync Sheet Taskbox</span>
   `;
-  document.body.appendChild(floatingBtn);
+  safeAppend(floatingBtn);
 
   const modalOverlay = document.createElement('div');
   modalOverlay.id = 'sm-sync-modal-overlay';
@@ -931,7 +981,7 @@
       </div>
     </div>
   `;
-  document.body.appendChild(modalOverlay);
+  safeAppend(modalOverlay);
 
   // --- STATE ---
   let parsedBoxesCache = [];
@@ -1148,7 +1198,7 @@
       function onMouseMove(moveEvent) {
         const dx = moveEvent.clientX - startX;
         const dy = moveEvent.clientY - startY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
           isDragging = true;
           floatingBtn.style.bottom = 'auto';
           floatingBtn.style.right = 'auto';
