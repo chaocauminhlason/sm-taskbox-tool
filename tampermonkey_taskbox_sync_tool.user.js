@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.4.0
+// @version      2.5.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -884,6 +884,19 @@
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="assigned" style="background:#0369a1; color:#bae6fd;">Đã gán</button>
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="created" style="background:#312e81; color:#a5b4fc;">Mới tạo</button>
               <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="all">Tất cả</button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">Giai đoạn:</span>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill sm-pill-active" data-stage="all">Tất cả</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B2">B2</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B3">B3</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A1">A1</button>
+
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; margin-left:10px; min-width:55px;">Module:</span>
+              <div id="sm-web-module-pills-container" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="sm-pill-btn sm-web-module-pill sm-pill-active" data-module="all">Tất cả</button>
+              </div>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
@@ -2262,6 +2275,18 @@
   let currentWebDateFilter = 'today';
   let currentWebStatusFilter = 'active';
   let currentWebUserFilter = 'all';
+  let currentWebStageFilter = 'all';
+  let currentWebModuleFilter = 'all';
+
+  function extractModuleAndStage(title) {
+    let mod = '-';
+    let stage = '-';
+    const mMatch = (title || '').match(/M\d+(?:-\d+)?/i);
+    if (mMatch) mod = mMatch[0].toUpperCase();
+    const sMatch = (title || '').match(/(?:A\d|B\d)/i);
+    if (sMatch) stage = sMatch[0].toUpperCase();
+    return { mod, stage };
+  }
 
   function getBoxLocalDateStr(dateVal) {
     if (!dateVal) return '';
@@ -2293,6 +2318,7 @@
       rawWebBoxesCache = data.boxes || data || [];
       // Sort newest first
       rawWebBoxesCache.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      renderWebModulePills();
       filterWebBoxes();
     } catch (err) {
       alert('Lỗi khi tải TaskBox từ Scenario Manager: ' + err.message);
@@ -2305,6 +2331,47 @@
         `;
       }
     }
+  }
+
+  
+  function renderWebModulePills() {
+    const container = document.getElementById('sm-web-module-pills-container');
+    if (!container) return;
+
+    const moduleSet = new Set();
+    rawWebBoxesCache.forEach(b => {
+      const { mod } = extractModuleAndStage(b.title);
+      if (mod && mod !== '-') {
+        // Group by base prefix (e.g. M12, M13) or exact module
+        const base = mod.split('-')[0];
+        moduleSet.add(base);
+        if (mod.includes('-')) moduleSet.add(mod);
+      }
+    });
+
+    const modules = Array.from(moduleSet).sort();
+
+    container.innerHTML = `
+      <button type="button" class="sm-pill-btn sm-web-module-pill ${currentWebModuleFilter === 'all' ? 'sm-pill-active' : ''}" data-module="all">Tất cả</button>
+    `;
+
+    modules.forEach(mod => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `sm-pill-btn sm-web-module-pill ${currentWebModuleFilter === mod ? 'sm-pill-active' : ''}`;
+      btn.setAttribute('data-module', mod);
+      btn.textContent = mod;
+      container.appendChild(btn);
+    });
+
+    container.querySelectorAll('.sm-web-module-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        container.querySelectorAll('.sm-web-module-pill').forEach(p => p.classList.remove('sm-pill-active'));
+        pill.classList.add('sm-pill-active');
+        currentWebModuleFilter = pill.getAttribute('data-module');
+        filterWebBoxes();
+      });
+    });
   }
 
   function filterWebBoxes() {
@@ -2333,6 +2400,18 @@
           const isMyBox = (createdBy === me || assignee === me || holder === me || people.includes(me));
           if (!isMyBox) return false;
         }
+      }
+
+      const { mod: boxMod, stage: boxStage } = extractModuleAndStage(b.title);
+
+      // 1c. Stage Filter (B2, B3, A1, all)
+      if (currentWebStageFilter !== 'all') {
+        if (boxStage !== currentWebStageFilter) return false;
+      }
+
+      // 1d. Module Filter (M12, M13, etc.)
+      if (currentWebModuleFilter !== 'all') {
+        if (boxMod !== currentWebModuleFilter && !boxMod.startsWith(currentWebModuleFilter)) return false;
       }
 
       // 2. Date Filter
@@ -2707,6 +2786,16 @@
       document.querySelectorAll('.sm-web-user-pill').forEach(p => p.classList.remove('sm-pill-active'));
       pill.classList.add('sm-pill-active');
       currentWebUserFilter = pill.getAttribute('data-user');
+      filterWebBoxes();
+    });
+  });
+
+  // Stage filter pills
+  document.querySelectorAll('.sm-web-stage-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.sm-web-stage-pill').forEach(p => p.classList.remove('sm-pill-active'));
+      pill.classList.add('sm-pill-active');
+      currentWebStageFilter = pill.getAttribute('data-stage');
       filterWebBoxes();
     });
   });
