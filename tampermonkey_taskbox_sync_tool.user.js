@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.8.0
+// @version      2.9.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -301,6 +301,26 @@
       color: #cbd5e1;
     }
     .sm-table tr:hover td { background: rgba(51, 65, 85, 0.4); }
+    .sm-table th.sm-th-sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .sm-table th.sm-th-sortable:hover {
+      background: #334155;
+      color: #38bdf8;
+    }
+    .sm-sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      color: #64748b;
+    }
+    .sm-sort-icon.sm-sort-active {
+      color: #38bdf8;
+      font-weight: 800;
+    }
     .sm-badge {
       display: inline-block;
       padding: 2px 8px;
@@ -805,14 +825,14 @@
               <thead>
                 <tr>
                   <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-th-select-all" checked /></th>
-                  <th>Module</th>
-                  <th>Giai đoạn</th>
-                  <th>Tên TaskBox</th>
-                  <th>Anchor ID</th>
-                  <th>Số món</th>
-                  <th>Tổng SL</th>
-                  <th>Người nhận</th>
-                  <th>Trạng thái</th>
+                  <th class="sm-th-sortable" data-sort-tab1="module" title="Bấm để sắp xếp theo Module">Module <span class="sm-sort-icon" id="sm-sort-icon-tab1-module">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="stage" title="Bấm để sắp xếp theo Giai đoạn">Giai đoạn <span class="sm-sort-icon" id="sm-sort-icon-tab1-stage">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="title" title="Bấm để sắp xếp theo Tên TaskBox">Tên TaskBox <span class="sm-sort-icon" id="sm-sort-icon-tab1-title">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="anchor" title="Bấm để sắp xếp theo Anchor ID">Anchor ID <span class="sm-sort-icon" id="sm-sort-icon-tab1-anchor">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="item_count" title="Bấm để sắp xếp theo Số món">Số món <span class="sm-sort-icon" id="sm-sort-icon-tab1-item_count">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="total_qty" title="Bấm để sắp xếp theo Tổng số lượng">Tổng SL <span class="sm-sort-icon" id="sm-sort-icon-tab1-total_qty">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="assignee" title="Bấm để sắp xếp theo Người nhận">Người nhận <span class="sm-sort-icon" id="sm-sort-icon-tab1-assignee">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab1="status" title="Bấm để sắp xếp theo Trạng thái">Trạng thái <span class="sm-sort-icon" id="sm-sort-icon-tab1-status">↕</span></th>
                   <th style="text-align: center;">Thao tác</th>
                 </tr>
               </thead>
@@ -965,14 +985,14 @@
               <thead>
                 <tr>
                   <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-web-th-select-all" /></th>
-                  <th>Mã Box</th>
-                  <th>Tên TaskBox</th>
-                  <th>Module / Giai đoạn</th>
-                  <th>Anchor ID</th>
-                  <th>Tổng SL</th>
-                  <th>Người giữ</th>
-                  <th>Ngày tạo</th>
-                  <th>Trạng thái</th>
+                  <th class="sm-th-sortable" data-sort-tab2="id" title="Bấm để sắp xếp theo Mã Box">Mã Box <span class="sm-sort-icon" id="sm-sort-icon-tab2-id">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="title" title="Bấm để sắp xếp theo Tên TaskBox">Tên TaskBox <span class="sm-sort-icon" id="sm-sort-icon-tab2-title">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="module_stage" title="Bấm để sắp xếp theo Module / Giai đoạn">Module / Giai đoạn <span class="sm-sort-icon" id="sm-sort-icon-tab2-module_stage">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="anchor" title="Bấm để sắp xếp theo Anchor ID">Anchor ID <span class="sm-sort-icon" id="sm-sort-icon-tab2-anchor">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="total_qty" title="Bấm để sắp xếp theo Tổng số lượng">Tổng SL <span class="sm-sort-icon" id="sm-sort-icon-tab2-total_qty">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="holder" title="Bấm để sắp xếp theo Người giữ">Người giữ <span class="sm-sort-icon" id="sm-sort-icon-tab2-holder">↕</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="created_at" title="Bấm để sắp xếp theo Ngày tạo">Ngày tạo <span class="sm-sort-icon sm-sort-active" id="sm-sort-icon-tab2-created_at">▼</span></th>
+                  <th class="sm-th-sortable" data-sort-tab2="status" title="Bấm để sắp xếp theo Trạng thái">Trạng thái <span class="sm-sort-icon" id="sm-sort-icon-tab2-status">↕</span></th>
                   <th style="text-align: center;">Thao tác</th>
                 </tr>
               </thead>
@@ -1178,6 +1198,21 @@
 
   // --- MODAL EVENTS ---
   
+  // --- TABLE HEADER SORT EVENT LISTENERS ---
+  document.querySelectorAll('#sm-sync-modal th[data-sort-tab1]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-sort-tab1');
+      if (key) handleTab1Sort(key);
+    });
+  });
+
+  document.querySelectorAll('#sm-sync-modal th[data-sort-tab2]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-sort-tab2');
+      if (key) handleTab2Sort(key);
+    });
+  });
+
   // --- DRAGGABLE FLOATING BUTTON & SHORTCUTS ---
   (function initFloatingButton() {
     let isDragging = false;
@@ -1296,6 +1331,305 @@
     if (e.target === modalOverlay) modalOverlay.style.display = 'none';
   });
 
+  // --- NATURAL SORT & TAB 1 SORT HELPERS ---
+  function naturalCompare(a, b) {
+    return String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+  }
+
+  let currentTab1SortKey = 'default';
+  let currentTab1SortOrder = 'asc';
+
+  function updateTab1SortIcons() {
+    document.querySelectorAll('#sm-sync-modal th[data-sort-tab1]').forEach(th => {
+      const key = th.getAttribute('data-sort-tab1');
+      const icon = th.querySelector('.sm-sort-icon');
+      if (!icon) return;
+      if (key === currentTab1SortKey) {
+        icon.textContent = currentTab1SortOrder === 'asc' ? '▲' : '▼';
+        icon.classList.add('sm-sort-active');
+      } else {
+        icon.textContent = '↕';
+        icon.classList.remove('sm-sort-active');
+      }
+    });
+  }
+
+  function sortTab1Results() {
+    if (!comparisonResults || comparisonResults.length === 0) return;
+    if (currentTab1SortKey === 'default') {
+      comparisonResults.sort((a, b) => {
+        const diff = (a.originalIndex ?? 0) - (b.originalIndex ?? 0);
+        return currentTab1SortOrder === 'asc' ? diff : -diff;
+      });
+      return;
+    }
+
+    comparisonResults.sort((a, b) => {
+      let cmp = 0;
+      if (currentTab1SortKey === 'module') {
+        cmp = naturalCompare(a.tb?.module, b.tb?.module);
+      } else if (currentTab1SortKey === 'stage') {
+        cmp = naturalCompare(a.tb?.stage, b.tb?.stage);
+      } else if (currentTab1SortKey === 'title') {
+        cmp = naturalCompare(a.tb?.title, b.tb?.title);
+      } else if (currentTab1SortKey === 'anchor') {
+        cmp = naturalCompare(a.tb?.anchor_object_id, b.tb?.anchor_object_id);
+      } else if (currentTab1SortKey === 'item_count') {
+        cmp = (a.tb?.item_count || 0) - (b.tb?.item_count || 0);
+      } else if (currentTab1SortKey === 'total_qty') {
+        cmp = (a.tb?.total_qty || 0) - (b.tb?.total_qty || 0);
+      } else if (currentTab1SortKey === 'assignee') {
+        cmp = naturalCompare(a.assignee, b.assignee);
+      } else if (currentTab1SortKey === 'status') {
+        cmp = naturalCompare(a.serverStatus || a.action, b.serverStatus || b.action);
+      }
+      return currentTab1SortOrder === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  function handleTab1Sort(sortKey) {
+    if (!comparisonResults || comparisonResults.length === 0) return;
+    if (currentTab1SortKey === sortKey) {
+      currentTab1SortOrder = currentTab1SortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentTab1SortKey = sortKey;
+      currentTab1SortOrder = (sortKey === 'item_count' || sortKey === 'total_qty') ? 'desc' : 'asc';
+    }
+    sortTab1Results();
+    renderPreviewTable();
+  }
+
+  function renderPreviewTable() {
+    const tbody = document.getElementById('sm-preview-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!comparisonResults || comparisonResults.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" style="text-align: center; color: #64748b; padding: 24px;">
+            Nhập URL Tab Sheet và bấm <b>"Quét dữ liệu"</b> để kiểm tra dữ liệu đối chiếu trước khi đồng bộ.
+          </td>
+        </tr>
+      `;
+      updateSelectionSummary();
+      updateTab1SortIcons();
+      return;
+    }
+
+    comparisonResults.forEach((item, idx) => {
+      const tb = item.tb || {};
+      const assignee = item.assignee || '-';
+      const action = item.action;
+      const matchedBoxId = item.serverBoxId;
+      const serverStatus = item.serverStatus || 'Chưa có';
+
+      if (action === 'SKIP') {
+        const tr = document.createElement('tr');
+        tr.style.opacity = '0.45';
+        tr.innerHTML = `
+          <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${idx}" disabled /></td>
+          <td><b>${tb.module || '-'}</b></td>
+          <td>${tb.stage || '-'}</td>
+          <td>${tb.title || '-'}</td>
+          <td><code>${tb.anchor_object_id || '-'}</code></td>
+          <td>0</td>
+          <td>0</td>
+          <td>-</td>
+          <td>-</td>
+          <td><span class="sm-badge sm-badge-skip">Bỏ qua (Nghỉ)</span></td>
+        `;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      let badgeClass = 'sm-badge-create';
+      let actionLabel = 'Tạo mới';
+      if (action === 'MATCH') {
+        badgeClass = 'sm-badge-match';
+        actionLabel = 'Đã khớp 100%';
+      } else if (action === 'UPDATE') {
+        badgeClass = 'sm-badge-update';
+        actionLabel = 'Cập nhật đồ';
+      } else if (action === 'SKIP_COLLECTED') {
+        badgeClass = 'sm-badge-collected';
+        actionLabel = 'Đã mượn';
+      }
+
+      let lifecycleActionBtn = '';
+      if (matchedBoxId) {
+        if (serverStatus === 'created') {
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Gán</button>`;
+        } else if (serverStatus === 'assigned') {
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Mượn</button>`;
+        } else if (serverStatus === 'collected') {
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Trả</button>`;
+        }
+        lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${idx}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">Mã QR</button>`;
+      }
+
+      const tr = document.createElement('tr');
+      let rowBg = 'transparent';
+      if (action === 'CREATE') rowBg = 'rgba(16, 185, 129, 0.08)';
+      else if (action === 'UPDATE') rowBg = 'rgba(245, 158, 11, 0.08)';
+      else if (action === 'MATCH') rowBg = 'rgba(59, 130, 246, 0.06)';
+      else if (action === 'SKIP_COLLECTED') rowBg = 'rgba(239, 68, 68, 0.08)';
+      tr.style.background = rowBg;
+
+      tr.innerHTML = `
+        <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${idx}" ${item.isSelected ? 'checked' : ''} /></td>
+        <td><b>${tb.module || '-'}</b></td>
+        <td><b style="color:#60a5fa;">${tb.stage || '-'}</b></td>
+        <td>${tb.title || '-'}</td>
+        <td><input type="text" class="sm-anchor-row-input" data-idx="${idx}" value="${tb.anchor_object_id || ''}" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:75px; font-family:monospace; font-size:12px;" /></td>
+        <td>${tb.item_count || 0} items</td>
+        <td><b>${tb.total_qty || 0}</b></td>
+        <td><code>${assignee}</code></td>
+        <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span></td>
+        <td><span class="sm-badge ${badgeClass}">${actionLabel}</span>${lifecycleActionBtn}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    attachPreviewRowEvents();
+    updateSelectionSummary();
+    updateTab1SortIcons();
+  }
+
+  function attachPreviewRowEvents() {
+    const tbody = document.getElementById('sm-preview-tbody');
+    if (!tbody) return;
+
+    // Add single assign button listeners
+    tbody.querySelectorAll('.sm-single-assign-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const item = comparisonResults[idx];
+        if (!item || !item.serverBoxId) return;
+        
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'assigned', assignee: item.assignee })
+          });
+          const trData = await trResp.json();
+          if (trResp.ok) {
+            alert(`✅ Đã gán "${item.tb.title}" cho ${item.assignee} thành công!`);
+            document.getElementById('sm-btn-preview')?.click();
+          } else {
+            alert(`❌ Lỗi: ${trData.detail || 'Không thể gán assignee'}`);
+            btn.disabled = false;
+            btn.textContent = 'Gán';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = 'Gán';
+        }
+      });
+    });
+
+    // Add single borrow button listeners
+    tbody.querySelectorAll('.sm-single-borrow-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const item = comparisonResults[idx];
+        if (!item || !item.serverBoxId) return;
+
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'collected', borrower: item.assignee, assignee: item.assignee, note: 'Borrowed via Tool' })
+          });
+          const trData = await trResp.json();
+          if (trResp.ok) {
+            alert(`✅ Đã mượn "${item.tb.title}" (collected) thành công!`);
+            document.getElementById('sm-btn-preview')?.click();
+          } else {
+            alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
+            btn.disabled = false;
+            btn.textContent = 'Mượn';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = 'Mượn';
+        }
+      });
+    });
+
+    // Add single return button listeners
+    tbody.querySelectorAll('.sm-single-return-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const item = comparisonResults[idx];
+        if (!item || !item.serverBoxId) return;
+
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'deactivated', returned_by: item.assignee, note: 'Returned via Tool' })
+          });
+          const trData = await trResp.json();
+          if (trResp.ok) {
+            alert(`✅ Đã trả "${item.tb.title}" (deactivated) thành công!`);
+            document.getElementById('sm-btn-preview')?.click();
+          } else {
+            alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
+            btn.disabled = false;
+            btn.textContent = 'Trả';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = 'Trả';
+        }
+      });
+    });
+
+    // Add single QR button listeners
+    tbody.querySelectorAll('.sm-single-qr-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const item = comparisonResults[idx];
+        if (!item || !item.serverBoxId) return;
+        openQRPrintWindow([item]);
+      });
+    });
+
+    // Add change event listeners to row checkboxes
+    tbody.querySelectorAll('.sm-row-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = parseInt(cb.getAttribute('data-idx'), 10);
+        if (comparisonResults[idx]) comparisonResults[idx].isSelected = cb.checked;
+        updateSelectionSummary();
+      });
+    });
+
+    // Add change listeners to editable anchor inputs
+    tbody.querySelectorAll('.sm-anchor-row-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(inp.getAttribute('data-idx'), 10);
+        if (comparisonResults[idx] && comparisonResults[idx].tb) {
+          comparisonResults[idx].tb.anchor_object_id = e.target.value.trim();
+        }
+      });
+    });
+  }
+
   // --- PREVIEW LOGIC ---
   document.getElementById('sm-btn-preview').addEventListener('click', async () => {
     triggerStartFresh();
@@ -1326,32 +1660,15 @@
       // Sort newest first
       serverBoxesCache.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
-      // 3. Compare
+      // 3. Compare & Populate comparisonResults
       comparisonResults = [];
-      const tbody = document.getElementById('sm-preview-tbody');
-      tbody.innerHTML = '';
 
       for (let i = 0; i < parsedBoxesCache.length; i++) {
         const tb = parsedBoxesCache[i];
         const assignee = getAssigneeForBox(tb);
 
         if (!tb.is_active) {
-          comparisonResults.push({ tb, action: 'SKIP', reason: 'Checkbox FALSE / Nghỉ', isSelected: false });
-          const tr = document.createElement('tr');
-          tr.style.opacity = '0.45';
-          tr.innerHTML = `
-            <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${i}" disabled /></td>
-            <td><b>${tb.module}</b></td>
-            <td>${tb.stage}</td>
-            <td>${tb.title}</td>
-            <td><code>${tb.anchor_object_id || '-'}</code></td>
-            <td>0</td>
-            <td>0</td>
-            <td>-</td>
-            <td>-</td>
-            <td><span class="sm-badge sm-badge-skip">Bỏ qua (Nghỉ)</span></td>
-          `;
-          tbody.appendChild(tr);
+          comparisonResults.push({ tb, action: 'SKIP', reason: 'Checkbox FALSE / Nghỉ', isSelected: false, originalIndex: i });
           continue;
         }
 
@@ -1362,7 +1679,7 @@
           const st = tb.stage.toUpperCase();
           
           // Exact module prefix regex (matches 'M12-01 - ...', 'M12-01( ...', 'M12-01B2')
-          const escapedMod = mod.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+          const escapedMod = mod.replace(/[-/\^$*+?.()|[\]{}]/g, '\\$&');
           const modRegex = new RegExp(`^${escapedMod}(\\s|\\(|-|_|${st}|$)`, 'i');
           
           return modRegex.test(bt) && bt.endsWith(st) && b.status !== 'deactivated';
@@ -1372,8 +1689,6 @@
         const collectedMatch = matches.find(b => b.status === 'collected');
 
         let action = 'CREATE';
-        let badgeClass = 'sm-badge-create';
-        let actionLabel = 'Tạo mới';
         let serverStatus = 'Chưa có';
         let matchedBoxId = null;
         let serverCreatedAt = null;
@@ -1393,13 +1708,9 @@
 
           if (isIdentical && activeMatch.assignee === assignee) {
             action = 'MATCH';
-            badgeClass = 'sm-badge-match';
-            actionLabel = 'Đã khớp 100%';
             defaultChecked = false; // By default don't re-sync already matched boxes
           } else {
             action = 'UPDATE';
-            badgeClass = 'sm-badge-update';
-            actionLabel = 'Cập nhật đồ';
             defaultChecked = true;
           }
         } else if (collectedMatch) {
@@ -1407,178 +1718,14 @@
           serverStatus = 'collected';
           serverCreatedAt = collectedMatch.created_at || null;
           action = 'SKIP_COLLECTED';
-          badgeClass = 'sm-badge-collected';
-          actionLabel = 'Đã mượn';
           defaultChecked = false; // Collected boxes skipped by default
         }
 
-        comparisonResults.push({ tb, action, serverBoxId: matchedBoxId, serverStatus, assignee, serverCreatedAt, isSelected: defaultChecked });
-
-        let lifecycleActionBtn = '';
-        if (matchedBoxId) {
-          if (serverStatus === 'created') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${i}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Gán</button>`;
-          } else if (serverStatus === 'assigned') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${i}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Mượn</button>`;
-          } else if (serverStatus === 'collected') {
-            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${i}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Trả</button>`;
-          }
-          lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${i}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">Mã QR</button>`;
-        }
-
-        const tr = document.createElement('tr');
-        let rowBg = 'transparent';
-        if (action === 'CREATE') rowBg = 'rgba(16, 185, 129, 0.08)';
-        else if (action === 'UPDATE') rowBg = 'rgba(245, 158, 11, 0.08)';
-        else if (action === 'MATCH') rowBg = 'rgba(59, 130, 246, 0.06)';
-        else if (action === 'SKIP_COLLECTED') rowBg = 'rgba(239, 68, 68, 0.08)';
-        tr.style.background = rowBg;
-
-        tr.innerHTML = `
-          <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${i}" ${defaultChecked ? 'checked' : ''} /></td>
-          <td><b>${tb.module}</b></td>
-          <td><b style="color:#60a5fa;">${tb.stage}</b></td>
-          <td>${tb.title}</td>
-          <td><input type="text" class="sm-anchor-row-input" data-idx="${i}" value="${tb.anchor_object_id || ''}" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:75px; font-family:monospace; font-size:12px;" /></td>
-          <td>${tb.item_count} items</td>
-          <td><b>${tb.total_qty}</b></td>
-          <td><code>${assignee}</code></td>
-          <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span></td>
-          <td><span class="sm-badge ${badgeClass}">${actionLabel}</span>${lifecycleActionBtn}</td>
-        `;
-        tbody.appendChild(tr);
+        comparisonResults.push({ tb, action, serverBoxId: matchedBoxId, serverStatus, assignee, serverCreatedAt, isSelected: defaultChecked, originalIndex: i });
       }
 
-      // Add single assign button listeners
-      tbody.querySelectorAll('.sm-single-assign-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          const item = comparisonResults[idx];
-          if (!item || !item.serverBoxId) return;
-          
-          btn.disabled = true;
-          btn.textContent = '⏳...';
-          try {
-            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to: 'assigned', assignee: item.assignee })
-            });
-            const trData = await trResp.json();
-            if (trResp.ok) {
-              alert(`✅ Đã gán "${item.tb.title}" cho ${item.assignee} thành công!`);
-              document.getElementById('sm-btn-preview')?.click();
-            } else {
-              alert(`❌ Lỗi: ${trData.detail || 'Không thể gán assignee'}`);
-              btn.disabled = false;
-              btn.textContent = 'Gán';
-            }
-          } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-            btn.disabled = false;
-            btn.textContent = 'Gán';
-          }
-        });
-      });
-
-      // Add single borrow button listeners
-      tbody.querySelectorAll('.sm-single-borrow-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          const item = comparisonResults[idx];
-          if (!item || !item.serverBoxId) return;
-
-          btn.disabled = true;
-          btn.textContent = '⏳...';
-          try {
-            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to: 'collected', borrower: item.assignee, assignee: item.assignee, note: 'Borrowed via Tool' })
-            });
-            const trData = await trResp.json();
-            if (trResp.ok) {
-              alert(`✅ Đã mượn "${item.tb.title}" (collected) thành công!`);
-              document.getElementById('sm-btn-preview')?.click();
-            } else {
-              alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
-              btn.disabled = false;
-              btn.textContent = 'Mượn';
-            }
-          } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-            btn.disabled = false;
-            btn.textContent = 'Mượn';
-          }
-        });
-      });
-
-      // Add single return button listeners
-      tbody.querySelectorAll('.sm-single-return-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          const item = comparisonResults[idx];
-          if (!item || !item.serverBoxId) return;
-
-          btn.disabled = true;
-          btn.textContent = '⏳...';
-          try {
-            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ to: 'deactivated', returned_by: item.assignee, note: 'Returned via Tool' })
-            });
-            const trData = await trResp.json();
-            if (trResp.ok) {
-              alert(`✅ Đã trả "${item.tb.title}" (deactivated) thành công!`);
-              document.getElementById('sm-btn-preview')?.click();
-            } else {
-              alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
-              btn.disabled = false;
-              btn.textContent = 'Trả';
-            }
-          } catch (err) {
-            alert('Lỗi kết nối: ' + err.message);
-            btn.disabled = false;
-            btn.textContent = 'Trả';
-          }
-        });
-      });
-
-      // Add single QR button listeners
-      tbody.querySelectorAll('.sm-single-qr-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(btn.getAttribute('data-idx'), 10);
-          const item = comparisonResults[idx];
-          if (!item || !item.serverBoxId) return;
-          openQRPrintWindow([item]);
-        });
-      });
-
-      // Add change event listeners to row checkboxes
-      tbody.querySelectorAll('.sm-row-check').forEach(cb => {
-        cb.addEventListener('change', () => {
-          const idx = parseInt(cb.getAttribute('data-idx'), 10);
-          if (comparisonResults[idx]) comparisonResults[idx].isSelected = cb.checked;
-          updateSelectionSummary();
-        });
-      });
-
-      // Add change listeners to editable anchor inputs
-      tbody.querySelectorAll('.sm-anchor-row-input').forEach(inp => {
-        inp.addEventListener('input', (e) => {
-          const idx = parseInt(inp.getAttribute('data-idx'), 10);
-          if (comparisonResults[idx] && comparisonResults[idx].tb) {
-            comparisonResults[idx].tb.anchor_object_id = e.target.value.trim();
-          }
-        });
-      });
-
-      updateSelectionSummary();
+      sortTab1Results();
+      renderPreviewTable();
     } catch (err) {
       alert('Lỗi: ' + err.message);
       console.error(err);
@@ -2381,6 +2528,73 @@
     });
   }
 
+  // --- TAB 2 SORT STATE & HELPERS ---
+  let currentWebSortKey = 'created_at';
+  let currentWebSortOrder = 'desc';
+
+  function updateWebSortIcons() {
+    document.querySelectorAll('#sm-sync-modal th[data-sort-tab2]').forEach(th => {
+      const key = th.getAttribute('data-sort-tab2');
+      const icon = th.querySelector('.sm-sort-icon');
+      if (!icon) return;
+      if (key === currentWebSortKey) {
+        icon.textContent = currentWebSortOrder === 'asc' ? '▲' : '▼';
+        icon.classList.add('sm-sort-active');
+      } else {
+        icon.textContent = '↕';
+        icon.classList.remove('sm-sort-active');
+      }
+    });
+  }
+
+  function sortWebBoxesList(list) {
+    if (!list || list.length === 0) return;
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (currentWebSortKey === 'id') {
+        cmp = naturalCompare(a.id || a.box_id, b.id || b.box_id);
+      } else if (currentWebSortKey === 'title') {
+        cmp = naturalCompare(a.title, b.title);
+      } else if (currentWebSortKey === 'module_stage') {
+        const ma = extractModuleAndStage(a.title);
+        const mb = extractModuleAndStage(b.title);
+        cmp = naturalCompare(ma.mod, mb.mod);
+        if (cmp === 0) {
+          cmp = naturalCompare(ma.stage, mb.stage);
+        }
+      } else if (currentWebSortKey === 'anchor') {
+        cmp = naturalCompare(a.anchor_object_id, b.anchor_object_id);
+      } else if (currentWebSortKey === 'total_qty') {
+        const qtyA = (a.contents || []).reduce((sum, c) => sum + (c.quantity || 1), 0);
+        const qtyB = (b.contents || []).reduce((sum, c) => sum + (c.quantity || 1), 0);
+        cmp = qtyA - qtyB;
+      } else if (currentWebSortKey === 'holder') {
+        const hA = a.current_holder || a.borrower || a.assignee || '';
+        const hB = b.current_holder || b.borrower || b.assignee || '';
+        cmp = naturalCompare(hA, hB);
+      } else if (currentWebSortKey === 'created_at') {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        cmp = tA - tB;
+      } else if (currentWebSortKey === 'status') {
+        cmp = naturalCompare(a.status, b.status);
+      }
+      return currentWebSortOrder === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  function handleTab2Sort(sortKey) {
+    if (!filteredWebBoxes || filteredWebBoxes.length === 0) return;
+    if (currentWebSortKey === sortKey) {
+      currentWebSortOrder = currentWebSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+      currentWebSortKey = sortKey;
+      currentWebSortOrder = (sortKey === 'created_at' || sortKey === 'total_qty') ? 'desc' : 'asc';
+    }
+    sortWebBoxesList(filteredWebBoxes);
+    renderWebTable();
+  }
+
   function filterWebBoxes() {
     const customDate = document.getElementById('sm-web-date-picker')?.value;
     const searchTerm = (document.getElementById('sm-web-search-input')?.value || '').trim().toLowerCase();
@@ -2450,6 +2664,7 @@
       if (typeof b.isSelected === 'undefined') b.isSelected = false;
     });
 
+    sortWebBoxesList(filteredWebBoxes);
     renderWebTable();
   }
 
@@ -2524,6 +2739,7 @@
 
     attachWebRowEvents();
     updateWebSelectionSummary();
+    updateWebSortIcons();
   }
 
   function attachWebRowEvents() {
