@@ -1,0 +1,2704 @@
+// ==UserScript==
+// @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
+// @namespace    https://sm.config.inc/
+// @version      2.0.0
+// @description  Tự động đọc Google Sheet (theo URL Tab) và điền / đồng bộ chính xác Taskbox lên Scenario Manager
+// @author       Antigravity
+// @match        https://sm.config.inc/*
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  // --- STYLES ---
+  const style = document.createElement('style');
+  style.textContent = `
+    #sm-sync-floating-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 99999;
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      color: #ffffff;
+      padding: 12px 20px;
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 50px;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5), 0 8px 10px -6px rgba(59, 130, 246, 0.5);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #sm-sync-floating-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px -5px rgba(59, 130, 246, 0.6);
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    }
+    #sm-sync-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 100000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #sm-sync-modal {
+      background: #0f172a;
+      color: #f8fafc;
+      width: 95vw;
+      max-width: 1300px;
+      min-width: 650px;
+      height: 90vh;
+      min-height: 500px;
+      max-height: 96vh;
+      border-radius: 16px;
+      border: 1px solid #334155;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      resize: both;
+      position: relative;
+    }
+    #sm-sync-modal::-webkit-resizer {
+      background: linear-gradient(135deg, transparent 50%, #3b82f6 50%);
+    }
+    .sm-sync-header {
+      padding: 14px 20px;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .sm-sync-header h2 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sm-sync-close-btn {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 22px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .sm-sync-close-btn:hover { color: #f8fafc; background: #334155; }
+    .sm-sync-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+    .sm-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .sm-input-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .sm-input-control {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #f8fafc;
+      padding: 8px 12px;
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .sm-input-control:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    .sm-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .sm-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .sm-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #93c5fd;
+    }
+    .sm-assignee-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px;
+      max-height: 110px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .sm-assignee-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0f172a;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+    .sm-assignee-item span {
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 55px;
+      color: #38bdf8;
+    }
+    .sm-assignee-item input {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 4px;
+      color: #fff;
+      padding: 3px 6px;
+      font-size: 12px;
+      width: 100%;
+      outline: none;
+    }
+    .sm-btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: center;
+      margin-top: 4px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .sm-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .sm-btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+    .sm-btn-primary:hover { background: #1d4ed8; }
+    .sm-btn-success {
+      background: #16a34a;
+      color: white;
+    }
+    .sm-btn-success:hover { background: #15803d; }
+    .sm-btn-secondary {
+      background: #334155;
+      color: #e2e8f0;
+    }
+    .sm-btn-secondary:hover { background: #475569; }
+    .sm-table-container {
+      flex: 1;
+      min-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #0f172a;
+      resize: vertical;
+    }
+    .sm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      text-align: left;
+    }
+    .sm-table th {
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 600;
+      padding: 10px 12px;
+      position: sticky;
+      top: 0;
+      border-bottom: 1px solid #334155;
+    }
+    .sm-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+    .sm-table tr:hover td { background: rgba(51, 65, 85, 0.4); }
+    .sm-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .sm-badge-create { background: #065f46; color: #34d399; }
+    .sm-badge-update { background: #854d0e; color: #fde047; }
+    .sm-badge-match { background: #1e3a8a; color: #93c5fd; }
+    .sm-badge-collected { background: #991b1b; color: #fca5a5; }
+    .sm-badge-skip { background: #334155; color: #94a3b8; }
+    .sm-progress-bar {
+      height: 6px;
+      background: #1e293b;
+      border-radius: 3px;
+      overflow: hidden;
+      display: none;
+    }
+    .sm-progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.2s;
+    }
+    .sm-log-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #a5f3fc;
+      max-height: 120px;
+      overflow-y: auto;
+      display: none;
+    }
+    .sm-pill-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      border-radius: 9999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sm-pill-btn:hover {
+      background: #475569;
+      color: #fff;
+    }
+    .sm-pill-active {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      border-color: #3b82f6 !important;
+    }
+    .sm-tabs-bar {
+      display: flex;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 0 16px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .sm-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sm-tab-btn:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .sm-tab-btn.sm-tab-active {
+      color: #38bdf8;
+      border-bottom-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+    }
+    .sm-tab-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // --- COMPLETE STANDARD ANCHOR MAP (77 Anchors) ---
+  const STANDARD_ANCHORS = {
+    'tulanh': '003673',
+    'bephongngoai': '003674',
+    'tubep': '003675',
+    'mayruabat': '003676',
+    'kechauinoxcochan': '003677',
+    'tulocker6ngan': '003678',
+    'lonuongamtu': '003679',
+    'bangchuyen': '003680',
+    'xerac': '003681',
+    'bepnuongbbq': '003682',
+    'boothbanhang': '003683',
+    'xedayembe': '003684',
+    'giaphoiquanao': '003685',
+    'toong': '003828',
+    'tugiaynho': '003686',
+    'tugiay': '003686',
+    'xedap': '003687',
+    'leudulich': '003688',
+    'caulaquanao': '003689',
+    'tumat': '003691',
+    'tudong': '003690',
+    'tukinhtrungbay': '003692',
+    'tuthuoc': '003693',
+    'tuthooc': '003693',
+    'maylocnuoc': '003731',
+    'tutailieu': '003695',
+    'tusayquanaoxanh': '003696',
+    'tuhapdoan': '003722',
+    'maygiatcuatruoc': '003698',
+    'mayphacafe': '003699',
+    'mayphacaphe': '003699',
+    'tulanhmini': '003700',
+    'ket': '003701',
+    'banhoc': '003702',
+    'sofa': '003703',
+    'tusayquanaotim': '003704',
+    'mayin3d': '003717',
+    'tukythuat3f': '003714',
+    'banvekythuat': '003706',
+    'kededo': '003707',
+    'tuquanao': '003712',
+    'xebanhang': '003708',
+    'tuhapto': '003697',
+    'boncau': '003709',
+    'lavabo': '003710',
+    'maygiatcuatren': '003711',
+    'giuongtreem': '003851',
+    'bomaytinhserver': '003725',
+    'xedayphucvunhahang': '003719',
+    'cuitreem': '003705',
+    'kecay': '003721',
+    'xeototreem': '003716',
+    'quathoinuoc': '003730',
+    'maybongngo': '003729',
+    'tukythuat': '003718',
+    'tubanhden': '003727',
+    'quayvuichoitreem': '003726',
+    'mayhutchankhong': '003723',
+    'maymay': '003735',
+    'mayphatdien': '003734',
+    'xedayyte': '003720',
+    'bantrangdiem': '003732',
+    'kesieuthi': '003740',
+    'quaythungan': '003715',
+    'cuithucung': '003739',
+    'giuongbenh': '003738',
+    'tubanh': '003737',
+    'lovisong': '003724',
+    'kedochoi': '003736',
+    'xelan': '003733',
+    'kededotuquanao': '003707',
+    'xebanhangtuhapto': '003708',
+    'boncaulavabomaygiatcuatren': '003709',
+    'maylocnuocquathoinuoc': '003730',
+    'quayvuichoitreemototrecon': '003726',
+    'mayhutchankhongmayphatdien': '003723',
+    'kesieuthikedochoi': '003736',
+    'quaythunganlovisong': '003715',
+    'giuongbenhxelan': '003738',
+    'mayin3dtukythuat': '003717'
+  };
+
+  function removeVietnameseTones(str) {
+    str = str || '';
+    str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    return str.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+  }
+
+  function parseCSV(text) {
+    const lines = text.split(/\r\n|\n/);
+    const rows = [];
+    for (let line of lines) {
+      if (!line.trim()) continue;
+      const row = [];
+      let inQuotes = false;
+      let cell = '';
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+        } else {
+          cell += c;
+        }
+      }
+      row.push(cell);
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function extractSheetUrlInfo(url) {
+    const matchId = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    const matchGid = url.match(/[#&?]gid=([0-9]+)/);
+    const docId = matchId ? matchId[1] : null;
+    const gid = matchGid ? matchGid[1] : '0';
+    return { docId, gid };
+  }
+
+  async function fetchSheetCSV(url) {
+    const { docId, gid } = extractSheetUrlInfo(url);
+    if (!docId) throw new Error('URL Google Sheet không hợp lệ!');
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv&gid=${gid}`;
+    const res = await fetch(exportUrl);
+    if (!res.ok) throw new Error(`Không thể tải dữ liệu Sheet (HTTP ${res.status}). Đảm bảo Sheet đã share quyền xem.`);
+    const text = await res.text();
+    return parseCSV(text);
+  }
+
+  // --- PARSE TASKBOXES FROM CSV ---
+  function parseTaskboxesFromRows(rows) {
+    const blocks = [];
+    for (let idx = 0; idx < rows.length; idx++) {
+      const r = rows[idx];
+      if (r.length > 0 && /^\d+$/.test(r[0].trim())) {
+        const stt = parseInt(r[0].trim(), 10);
+        const code = r[1] ? r[1].trim() : '';
+        let lo_name = '';
+        let direct_anchor_id = '';
+
+        for (let sub = idx + 1; sub < Math.min(idx + 24, rows.length); sub++) {
+          if (rows[sub] && rows[sub][1] && rows[sub][1].trim()) {
+            const val = rows[sub][1].trim();
+            // Check if cell contains direct Anchor ID (5 or 6 digits)
+            if (/^\d{5,6}$/.test(val)) {
+              direct_anchor_id = val.padStart(6, '0');
+            } else if (!val.startsWith('SC') && !val.startsWith('Large') && !val.startsWith('Table') && !val.startsWith('00')) {
+              if (!lo_name) lo_name = val;
+            }
+          }
+        }
+
+        blocks.push({
+          stt,
+          code,
+          lo_name,
+          direct_anchor_id,
+          start_row: idx,
+          end_row: idx + 25
+        });
+      }
+    }
+
+    const stagesConfig = [
+      { name: 'B2', start_col: 2 },
+      { name: 'B3', start_col: 9 },
+      { name: 'A1', start_col: 16 }
+    ];
+
+    const parsedBoxes = [];
+
+    for (const b of blocks) {
+      if (!b.code) continue;
+
+      for (const stg of stagesConfig) {
+        let chk_val = 'TRUE';
+        const header_r = b.start_row - 2;
+        if (header_r >= 0 && header_r < rows.length && rows[header_r].length > stg.start_col) {
+          const raw = rows[header_r][stg.start_col].trim().toUpperCase();
+          if (raw === 'TRUE' || raw === 'FALSE') {
+            chk_val = raw;
+          }
+        }
+
+        const seen = {};
+        const itemsDetail = [];
+
+        for (let r = b.start_row; r < Math.min(b.end_row, rows.length); r++) {
+          const row = rows[r];
+          if (!row || row.length <= stg.start_col + 4) continue;
+
+          const oname = (row[stg.start_col + 1] || '').trim();
+          const oid = (row[stg.start_col + 2] || '').trim();
+          const floor = (row[stg.start_col + 3] || '').trim();
+          const loc = (row[stg.start_col + 4] || '').trim();
+          const qty_str = (row[stg.start_col + 5] || '').trim();
+
+          if (oid && /^\d+$/.test(oid) && oid.length >= 5 && oname && !['Tên object', 'Anchor', 'Tên', 'nghỉ', 'Object ID', 'Tầng', 'Vị trí', 'SL'].includes(oname)) {
+            const qty = /^\d+$/.test(qty_str) ? parseInt(qty_str, 10) : 1;
+            const oid_pad = oid.padStart(6, '0');
+            seen[oid_pad] = (seen[oid_pad] || 0) + qty;
+            itemsDetail.push({
+              object_id: oid_pad,
+              name: oname,
+              floor,
+              location: loc,
+              quantity: qty
+            });
+          }
+        }
+
+        const contents = Object.entries(seen).map(([k, v]) => ({ object_id: k, quantity: v }));
+        const norm = removeVietnameseTones(b.lo_name);
+        const anchor_id = b.direct_anchor_id || STANDARD_ANCHORS[norm] || '';
+        const title = b.lo_name ? `${b.code}( ${b.lo_name})${stg.name}` : `${b.code}${stg.name}`;
+
+        parsedBoxes.push({
+          module: b.code,
+          lo_name: b.lo_name,
+          stage: stg.name,
+          title,
+          anchor_object_id: anchor_id,
+          is_active: (chk_val === 'TRUE' && contents.length > 0),
+          checkbox: chk_val,
+          item_count: contents.length,
+          total_qty: contents.reduce((sum, c) => sum + c.quantity, 0),
+          contents,
+          itemsDetail
+        });
+      }
+    }
+
+    return parsedBoxes;
+  }
+
+  // --- CREATE UI ELEMENTS ---
+  const floatingBtn = document.createElement('button');
+  floatingBtn.id = 'sm-sync-floating-btn';
+  floatingBtn.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <path d="M3 3v5h5"/>
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+      <path d="M16 21h5v-5"/>
+    </svg>
+    <span>Sync Sheet Taskbox</span>
+  `;
+  document.body.appendChild(floatingBtn);
+
+  const modalOverlay = document.createElement('div');
+  modalOverlay.id = 'sm-sync-modal-overlay';
+  modalOverlay.innerHTML = `
+    <div id="sm-sync-modal">
+      <div class="sm-sync-header">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Scenario Manager TaskBox Tool (Sheet Sync & Live Web Manager)
+        </h2>
+        <button class="sm-sync-close-btn" id="sm-modal-close">&times;</button>
+      </div>
+
+      <div class="sm-tabs-bar">
+        <button type="button" class="sm-tab-btn sm-tab-active" id="sm-tab-btn-sheet">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          1. Đồng bộ từ Google Sheet
+        </button>
+        <button type="button" class="sm-tab-btn" id="sm-tab-btn-web">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          2. Quản lý & Bàn giao / Trả đồ (Từ Web)
+        </button>
+      </div>
+
+      <div class="sm-sync-body">
+        <!-- TAB 1: GOOGLE SHEET SYNC -->
+        <div id="sm-tab-pane-sheet" class="sm-tab-pane">
+          <div class="sm-input-group">
+            <label>Link URL Google Sheet Tab (Tab người soạn đồ, vd Sơn / Tiến / Quân / Giang / Mạnh / Hưng):</label>
+            <input type="text" id="sm-sheet-url" class="sm-input-control" placeholder="https://docs.google.com/spreadsheets/d/.../edit?gid=1060497124#gid=1060497124" />
+          </div>
+
+          <div class="sm-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h3 style="margin:0; font-size:14px; font-weight:600; color:#93c5fd;">Phân công Assignee ID cho từng Module (Tự động lưu lại):</h3>
+              <label style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="sm-auto-assign-check" style="cursor:pointer;" />
+                <span>Chuyển sang <b>"assigned"</b> ngay sau khi tạo</span>
+              </label>
+            </div>
+            <div class="sm-assignee-grid" id="sm-assignee-container">
+              <!-- Dynamic Assignee inputs -->
+            </div>
+          </div>
+
+          <div class="sm-progress-bar" id="sm-sync-progress"><div class="sm-progress-fill" id="sm-progress-fill"></div></div>
+          <div class="sm-log-box" id="sm-log-box"></div>
+
+          <div class="sm-toolbar-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span style="font-size:12px; font-weight:600; color:#94a3b8;">Chọn nhanh:</span>
+              <button type="button" class="sm-pill-btn" id="sm-sel-all">Tất cả</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-actionable" style="background:#1e3a8a; color:#93c5fd;">⚡ Cần tạo/sửa</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-created" style="background:#312e81; color:#a5b4fc;">Chưa Assign</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-assigned" style="background:#0369a1; color:#bae6fd;">Cần Mượn</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-collected" style="background:#7f1d1d; color:#fecaca;">Cần Trả</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-b2">Chỉ B2</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-b3">Chỉ B3</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-a1">Chỉ A1</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-none">Bỏ chọn</button>
+            </div>
+            <div id="sm-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8;">
+              Đã chọn: 0 box
+            </div>
+          </div>
+
+          <div class="sm-table-container">
+            <table class="sm-table">
+              <thead>
+                <tr>
+                  <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-th-select-all" checked /></th>
+                  <th>Module</th>
+                  <th>Stage</th>
+                  <th>Tên Taskbox</th>
+                  <th>Anchor ID</th>
+                  <th>Số Items (Sheet)</th>
+                  <th>Tổng SL</th>
+                  <th>Assignee</th>
+                  <th>Server Status</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="sm-preview-tbody">
+                <tr>
+                  <td colspan="10" style="text-align: center; color: #64748b; padding: 24px;">
+                    Nhập URL Tab Sheet và bấm <b>"Quét & Xem trước"</b> để kiểm tra dữ liệu đối chiếu trước khi đồng bộ.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sm-btn-row" style="flex-wrap:wrap;">
+            <span style="font-size:11px; color:#64748b; margin-right:auto; display:flex; align-items:center; gap:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              Kéo góc dưới phải để co giãn cửa sổ
+            </span>
+            <button class="sm-btn sm-btn-secondary" id="sm-btn-preview">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              Quét & Xem trước
+            </button>
+            <button class="sm-btn sm-btn-success" id="sm-btn-sync" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              <span id="sm-sync-btn-text">Đồng bộ Đồ</span>
+            </button>
+            <button class="sm-btn" id="sm-btn-assign-only" style="background:#4f46e5; color:white;" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span id="sm-assign-btn-text">Gán Assignee (0)</span>
+            </button>
+            <button class="sm-btn" id="sm-btn-borrow-only" style="background:#0284c7; color:white;" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+              <span id="sm-borrow-btn-text">Mượn đồ (0)</span>
+            </button>
+            <button class="sm-btn" id="sm-btn-return-only" style="background:#b91c1c; color:white;" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+              <span id="sm-return-btn-text">Trả đồ (0)</span>
+            </button>
+            <button class="sm-btn" id="sm-btn-print-qr" style="background:#059669; color:white;" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+              <span id="sm-print-btn-text">In Mã QR (0)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: LIVE WEB TASKBOX MANAGER (HANDOVER & RETURN) -->
+        <div id="sm-tab-pane-web" class="sm-tab-pane" style="display:none;">
+          <!-- Filter Card -->
+          <div class="sm-card" style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">📅 Lọc theo ngày:</span>
+              <button type="button" class="sm-pill-btn sm-web-date-pill sm-pill-active" data-range="today">Hôm nay</button>
+              <button type="button" class="sm-pill-btn sm-web-date-pill" data-range="yesterday">Hôm qua</button>
+              <button type="button" class="sm-pill-btn sm-web-date-pill" data-range="last3days">3 ngày gần nhất</button>
+              <button type="button" class="sm-pill-btn sm-web-date-pill" data-range="all">Tất cả ngày</button>
+              <div style="display:flex; align-items:center; gap:5px; margin-left:6px;">
+                <span style="font-size:12px; color:#94a3b8;">Chọn ngày:</span>
+                <input type="date" id="sm-web-date-picker" class="sm-input-control" style="padding:2px 8px; font-size:12px; height:28px;" />
+              </div>
+              <button type="button" class="sm-btn sm-btn-primary" id="sm-web-btn-fetch" style="margin-left:auto; padding:6px 14px; font-size:12.5px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Quét TaskBox từ Web
+              </button>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">🏷️ Trạng thái:</span>
+              <button type="button" class="sm-pill-btn sm-web-status-pill sm-pill-active" data-status="active">Chưa trả (Active)</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="collected" style="background:#7f1d1d; color:#fecaca;">Đang mượn (collected)</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="assigned" style="background:#0369a1; color:#bae6fd;">Đã gán (assigned)</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="created" style="background:#312e81; color:#a5b4fc;">Mới tạo (created)</button>
+              <button type="button" class="sm-pill-btn sm-web-status-pill" data-status="all">Tất cả</button>
+
+              <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:320px;">
+                <input type="text" id="sm-web-search-input" class="sm-input-control" placeholder="🔍 Tìm Module, tên box, ID người..." style="padding:4px 10px; font-size:12px; width:100%; height:28px;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Handover & Batch Action Card -->
+          <div class="sm-card" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#0b1329; border-color:#3b82f6;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="font-size:13px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:4px;">
+                🤝 Bàn giao (Handover):
+              </span>
+              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới (vd: 3178, 2140)" style="width:210px; padding:4px 10px; font-size:12.5px;" />
+              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú (tùy chọn)" style="width:170px; padding:4px 10px; font-size:12.5px;" />
+              <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span id="sm-web-handover-text">Bàn giao (0)</span>
+              </button>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="sm-btn" id="sm-web-btn-return" style="background:#b91c1c; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+                <span id="sm-web-return-text">Trả đồ (0)</span>
+              </button>
+              <button type="button" class="sm-btn" id="sm-web-btn-borrow" style="background:#0284c7; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                <span id="sm-web-borrow-text">Mượn đồ (0)</span>
+              </button>
+              <button type="button" class="sm-btn" id="sm-web-btn-print-qr" style="background:#059669; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+                <span id="sm-web-print-text">In QR (0)</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="sm-progress-bar" id="sm-web-progress"><div class="sm-progress-fill" id="sm-web-progress-fill"></div></div>
+          <div class="sm-log-box" id="sm-web-log-box"></div>
+
+          <!-- Selection Toolbar for Tab 2 -->
+          <div class="sm-toolbar-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span style="font-size:12px; font-weight:600; color:#94a3b8;">Chọn:</span>
+              <button type="button" class="sm-pill-btn" id="sm-web-sel-all">Tất cả trong bảng</button>
+              <button type="button" class="sm-pill-btn" id="sm-web-sel-collected" style="background:#7f1d1d; color:#fecaca;">Chỉ Đang mượn</button>
+              <button type="button" class="sm-pill-btn" id="sm-web-sel-assigned" style="background:#0369a1; color:#bae6fd;">Chỉ Đã gán</button>
+              <button type="button" class="sm-pill-btn" id="sm-web-sel-none">Bỏ chọn</button>
+            </div>
+            <div id="sm-web-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8;">
+              Đã chọn: 0 / 0 box
+            </div>
+          </div>
+
+          <!-- Web Table Container -->
+          <div class="sm-table-container">
+            <table class="sm-table">
+              <thead>
+                <tr>
+                  <th style="width: 36px; text-align: center;"><input type="checkbox" id="sm-web-th-select-all" /></th>
+                  <th>Box ID</th>
+                  <th>Tên Taskbox</th>
+                  <th>Module / Stage</th>
+                  <th>Anchor ID</th>
+                  <th>SL Đồ</th>
+                  <th>Người giữ / Assignee</th>
+                  <th>Ngày tạo</th>
+                  <th>Trạng thái</th>
+                  <th style="text-align: center;">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="sm-web-tbody">
+                <tr>
+                  <td colspan="10" style="text-align: center; color: #64748b; padding: 24px;">
+                    Bấm <b>"Quét TaskBox từ Web"</b> để tải danh sách các box hiện có trên Scenario Manager.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modalOverlay);
+
+  // --- STATE ---
+  let parsedBoxesCache = [];
+  let serverBoxesCache = [];
+  let comparisonResults = [];
+
+  // Load Saved Settings
+  const savedSheetUrl = localStorage.getItem('sm_sync_sheet_url') || '';
+  if (savedSheetUrl) document.getElementById('sm-sheet-url').value = savedSheetUrl;
+
+  const autoAssignCheck = document.getElementById('sm-auto-assign-check');
+  if (autoAssignCheck) {
+    autoAssignCheck.checked = (localStorage.getItem('sm_sync_auto_assign') === 'true');
+    autoAssignCheck.addEventListener('change', (e) => {
+      localStorage.setItem('sm_sync_auto_assign', e.target.checked);
+    });
+  }
+
+  const defaultAssignees = {
+    'M12': '2140',
+    'M12-01_B2': '3122',
+    'M13': '3178'
+  };
+  let savedAssignees = JSON.parse(localStorage.getItem('sm_sync_assignees') || JSON.stringify(defaultAssignees));
+
+  function renderAssigneeInputs(modules = ['M12', 'M13']) {
+    const container = document.getElementById('sm-assignee-container');
+    container.innerHTML = '';
+    
+    // Distinct modules
+    const allKeys = Array.from(new Set([...modules, 'M12-01_B2']));
+    for (const mod of allKeys) {
+      const val = savedAssignees[mod] || (mod.startsWith('M13') ? '3178' : (mod === 'M12-01_B2' ? '3122' : '2140'));
+      const div = document.createElement('div');
+      div.className = 'sm-assignee-item';
+      div.innerHTML = `
+        <span>${mod}:</span>
+        <input type="text" data-mod="${mod}" value="${val}" placeholder="ID người lấy" />
+      `;
+      div.querySelector('input').addEventListener('input', (e) => {
+        savedAssignees[mod] = e.target.value.trim();
+        localStorage.setItem('sm_sync_assignees', JSON.stringify(savedAssignees));
+      });
+      container.appendChild(div);
+    }
+  }
+
+  renderAssigneeInputs(['M12', 'M13']);
+
+  function getAssigneeForBox(tb) {
+    if (tb.module === 'M12-01' && tb.stage === 'B2' && savedAssignees['M12-01_B2']) {
+      return savedAssignees['M12-01_B2'];
+    }
+    if (savedAssignees[tb.module]) return savedAssignees[tb.module];
+    const prefix = tb.module.split('-')[0];
+    if (savedAssignees[prefix]) return savedAssignees[prefix];
+    if (tb.module.startsWith('M13')) return '3178';
+    return '2140';
+  }
+
+  // --- SELECTION HELPERS ---
+  function updateSelectionSummary() {
+    const allCheckboxes = Array.from(document.querySelectorAll('.sm-row-check'));
+    const activeCheckboxes = allCheckboxes.filter(cb => !cb.disabled);
+
+    // Sync isSelected strictly with checkbox DOM state
+    allCheckboxes.forEach(cb => {
+      const idx = parseInt(cb.getAttribute('data-idx'), 10);
+      if (comparisonResults[idx]) {
+        comparisonResults[idx].isSelected = cb.disabled ? false : cb.checked;
+      }
+    });
+
+    const selectedCheckboxes = activeCheckboxes.filter(cb => cb.checked);
+    const selectedCount = selectedCheckboxes.length;
+    const totalSelectable = activeCheckboxes.length;
+
+    const countDisplay = document.getElementById('sm-selection-count');
+    const syncBtnText = document.getElementById('sm-sync-btn-text');
+    const syncBtn = document.getElementById('sm-btn-sync');
+    const assignBtn = document.getElementById('sm-btn-assign-only');
+    const assignBtnText = document.getElementById('sm-assign-btn-text');
+    const borrowBtn = document.getElementById('sm-btn-borrow-only');
+    const borrowBtnText = document.getElementById('sm-borrow-btn-text');
+    const returnBtn = document.getElementById('sm-btn-return-only');
+    const returnBtnText = document.getElementById('sm-return-btn-text');
+    const printBtn = document.getElementById('sm-btn-print-qr');
+    const printBtnText = document.getElementById('sm-print-btn-text');
+
+    // Count selected boxes eligible for each operation
+    const toSync = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP' && r.action !== 'SKIP_COLLECTED');
+    const selectedWithServer = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'created');
+    const selectedAssigned = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'assigned');
+    const selectedCollected = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'collected');
+    const selectedForPrint = comparisonResults.filter(r => r.isSelected && r.serverBoxId);
+
+    if (countDisplay) {
+      countDisplay.textContent = `Đã chọn: ${selectedCount} / ${totalSelectable} box`;
+    }
+    if (syncBtnText) {
+      syncBtnText.textContent = toSync.length > 0 ? `Đồng bộ (${toSync.length})` : `Đồng bộ Đồ`;
+    }
+    if (syncBtn) {
+      syncBtn.disabled = (toSync.length === 0);
+    }
+    if (assignBtnText) {
+      assignBtnText.textContent = `Gán Assignee (${selectedWithServer.length})`;
+    }
+    if (assignBtn) {
+      assignBtn.disabled = (selectedWithServer.length === 0);
+    }
+    if (borrowBtnText) {
+      borrowBtnText.textContent = `Mượn đồ (${selectedAssigned.length})`;
+    }
+    if (borrowBtn) {
+      borrowBtn.disabled = (selectedAssigned.length === 0);
+    }
+    if (returnBtnText) {
+      returnBtnText.textContent = `Trả đồ (${selectedCollected.length})`;
+    }
+    if (returnBtn) {
+      returnBtn.disabled = (selectedCollected.length === 0);
+    }
+    if (printBtnText) {
+      printBtnText.textContent = `In Mã QR (${selectedForPrint.length})`;
+    }
+    if (printBtn) {
+      printBtn.disabled = (selectedForPrint.length === 0);
+    }
+
+    const thSelectAll = document.getElementById('sm-th-select-all');
+    if (thSelectAll && totalSelectable > 0) {
+      thSelectAll.checked = (selectedCount === totalSelectable);
+      thSelectAll.indeterminate = (selectedCount > 0 && selectedCount < totalSelectable);
+    }
+  }
+
+  function setRowSelections(predicate) {
+    const checkboxes = Array.from(document.querySelectorAll('.sm-row-check'));
+    checkboxes.forEach((cb) => {
+      const idx = parseInt(cb.getAttribute('data-idx'), 10);
+      const item = comparisonResults[idx];
+      if (cb.disabled || !item || item.action === 'SKIP') {
+        cb.checked = false;
+        if (item) item.isSelected = false;
+        return;
+      }
+      const shouldCheck = !!predicate(item, idx);
+      cb.checked = shouldCheck;
+      if (item) item.isSelected = shouldCheck;
+    });
+    updateSelectionSummary();
+  }
+
+  document.getElementById('sm-sel-all')?.addEventListener('click', () => setRowSelections(item => item && item.action !== 'SKIP'));
+  document.getElementById('sm-sel-none')?.addEventListener('click', () => setRowSelections(() => false));
+  document.getElementById('sm-sel-actionable')?.addEventListener('click', () => setRowSelections(item => item && (item.action === 'CREATE' || item.action === 'UPDATE')));
+  document.getElementById('sm-sel-created')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'created'));
+  document.getElementById('sm-sel-assigned')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'assigned'));
+  document.getElementById('sm-sel-collected')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'collected'));
+  document.getElementById('sm-sel-b2')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B2'));
+  document.getElementById('sm-sel-b3')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B3'));
+  document.getElementById('sm-sel-a1')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A1'));
+
+  document.getElementById('sm-th-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    setRowSelections(item => checked && item && item.action !== 'SKIP');
+  });
+
+  // --- MODAL EVENTS ---
+  floatingBtn.addEventListener('click', () => {
+    triggerStartFresh();
+    modalOverlay.style.display = 'flex';
+  });
+  document.getElementById('sm-modal-close').addEventListener('click', () => {
+    modalOverlay.style.display = 'none';
+  });
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) modalOverlay.style.display = 'none';
+  });
+
+  // --- PREVIEW LOGIC ---
+  document.getElementById('sm-btn-preview').addEventListener('click', async () => {
+    triggerStartFresh();
+    const urlInput = document.getElementById('sm-sheet-url').value.trim();
+    if (!urlInput) {
+      alert('Vui lòng nhập Link URL Google Sheet Tab!');
+      return;
+    }
+    localStorage.setItem('sm_sync_sheet_url', urlInput);
+
+    const btn = document.getElementById('sm-btn-preview');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Đang quét dữ liệu...';
+
+    try {
+      // 1. Fetch Sheet CSV
+      const rows = await fetchSheetCSV(urlInput);
+      parsedBoxesCache = parseTaskboxesFromRows(rows);
+
+      // Render any new detected modules into Assignee inputs
+      const detectedModules = Array.from(new Set(parsedBoxesCache.map(b => b.module)));
+      renderAssigneeInputs(detectedModules);
+
+      // 2. Fetch Server Boxes
+      const resp = await fetch('/api/boxes?limit=300');
+      const data = await resp.json();
+      serverBoxesCache = data.boxes || data || [];
+
+      // 3. Compare
+      comparisonResults = [];
+      const tbody = document.getElementById('sm-preview-tbody');
+      tbody.innerHTML = '';
+
+      for (let i = 0; i < parsedBoxesCache.length; i++) {
+        const tb = parsedBoxesCache[i];
+        const assignee = getAssigneeForBox(tb);
+
+        if (!tb.is_active) {
+          comparisonResults.push({ tb, action: 'SKIP', reason: 'Checkbox FALSE / Nghỉ', isSelected: false });
+          const tr = document.createElement('tr');
+          tr.style.opacity = '0.45';
+          tr.innerHTML = `
+            <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${i}" disabled /></td>
+            <td><b>${tb.module}</b></td>
+            <td>${tb.stage}</td>
+            <td>${tb.title}</td>
+            <td><code>${tb.anchor_object_id || '-'}</code></td>
+            <td>0</td>
+            <td>0</td>
+            <td>-</td>
+            <td>-</td>
+            <td><span class="sm-badge sm-badge-skip">Bỏ qua (Nghỉ)</span></td>
+          `;
+          tbody.appendChild(tr);
+          continue;
+        }
+
+        // Match server box
+        const matches = serverBoxesCache.filter(b => {
+          const bt = (b.title || '').trim().toUpperCase();
+          const mod = tb.module.toUpperCase();
+          const st = tb.stage.toUpperCase();
+          return bt.includes(mod) && bt.endsWith(st) && b.status !== 'deactivated';
+        });
+
+        const activeMatch = matches.find(b => b.status === 'assigned' || b.status === 'created');
+        const collectedMatch = matches.find(b => b.status === 'collected');
+
+        let action = 'CREATE';
+        let badgeClass = 'sm-badge-create';
+        let actionLabel = 'Tạo mới';
+        let serverStatus = 'Chưa có';
+        let matchedBoxId = null;
+        let serverCreatedAt = null;
+        let defaultChecked = true;
+
+        if (activeMatch) {
+          matchedBoxId = activeMatch.box_id || activeMatch.id;
+          serverStatus = activeMatch.status;
+          serverCreatedAt = activeMatch.created_at || null;
+          
+          // Check if identical
+          const sContents = activeMatch.contents || [];
+          const isIdentical = sContents.length === tb.contents.length && tb.contents.every(c => {
+            const sc = sContents.find(x => x.object_id === c.object_id);
+            return sc && sc.quantity === c.quantity;
+          });
+
+          if (isIdentical && activeMatch.assignee === assignee) {
+            action = 'MATCH';
+            badgeClass = 'sm-badge-match';
+            actionLabel = 'Đã khớp 100%';
+            defaultChecked = false; // By default don't re-sync already matched boxes
+          } else {
+            action = 'UPDATE';
+            badgeClass = 'sm-badge-update';
+            actionLabel = 'Cập nhật đồ';
+            defaultChecked = true;
+          }
+        } else if (collectedMatch) {
+          matchedBoxId = collectedMatch.box_id || collectedMatch.id;
+          serverStatus = 'collected';
+          serverCreatedAt = collectedMatch.created_at || null;
+          action = 'SKIP_COLLECTED';
+          badgeClass = 'sm-badge-collected';
+          actionLabel = 'Đã mượn';
+          defaultChecked = false; // Collected boxes skipped by default
+        }
+
+        comparisonResults.push({ tb, action, serverBoxId: matchedBoxId, serverStatus, assignee, serverCreatedAt, isSelected: defaultChecked });
+
+        let lifecycleActionBtn = '';
+        if (matchedBoxId) {
+          if (serverStatus === 'created') {
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${i}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">👤 Gán</button>`;
+          } else if (serverStatus === 'assigned') {
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${i}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">📦 Mượn</button>`;
+          } else if (serverStatus === 'collected') {
+            lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${i}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">↩️ Trả</button>`;
+          }
+          lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${i}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">🖨️ QR</button>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align:center;"><input type="checkbox" class="sm-row-check" data-idx="${i}" ${defaultChecked ? 'checked' : ''} /></td>
+          <td><b>${tb.module}</b></td>
+          <td><b style="color:#60a5fa;">${tb.stage}</b></td>
+          <td>${tb.title}</td>
+          <td><input type="text" class="sm-anchor-row-input" data-idx="${i}" value="${tb.anchor_object_id || ''}" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:75px; font-family:monospace; font-size:12px;" /></td>
+          <td>${tb.item_count} items</td>
+          <td><b>${tb.total_qty}</b></td>
+          <td><code>${assignee}</code></td>
+          <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span></td>
+          <td><span class="sm-badge ${badgeClass}">${actionLabel}</span>${lifecycleActionBtn}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Add single assign button listeners
+      tbody.querySelectorAll('.sm-single-assign-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const item = comparisonResults[idx];
+          if (!item || !item.serverBoxId) return;
+          
+          btn.disabled = true;
+          btn.textContent = '⏳...';
+          try {
+            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: 'assigned', assignee: item.assignee })
+            });
+            const trData = await trResp.json();
+            if (trResp.ok) {
+              alert(`✅ Đã gán "${item.tb.title}" cho ${item.assignee} thành công!`);
+              document.getElementById('sm-btn-preview')?.click();
+            } else {
+              alert(`❌ Lỗi: ${trData.detail || 'Không thể gán assignee'}`);
+              btn.disabled = false;
+              btn.textContent = '👤 Gán';
+            }
+          } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '👤 Gán';
+          }
+        });
+      });
+
+      // Add single borrow button listeners
+      tbody.querySelectorAll('.sm-single-borrow-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const item = comparisonResults[idx];
+          if (!item || !item.serverBoxId) return;
+
+          btn.disabled = true;
+          btn.textContent = '⏳...';
+          try {
+            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: 'collected', borrower: item.assignee, assignee: item.assignee, note: 'Borrowed via Tool' })
+            });
+            const trData = await trResp.json();
+            if (trResp.ok) {
+              alert(`✅ Đã mượn "${item.tb.title}" (collected) thành công!`);
+              document.getElementById('sm-btn-preview')?.click();
+            } else {
+              alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
+              btn.disabled = false;
+              btn.textContent = '📦 Mượn';
+            }
+          } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '📦 Mượn';
+          }
+        });
+      });
+
+      // Add single return button listeners
+      tbody.querySelectorAll('.sm-single-return-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const item = comparisonResults[idx];
+          if (!item || !item.serverBoxId) return;
+
+          btn.disabled = true;
+          btn.textContent = '⏳...';
+          try {
+            const trResp = await fetch(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: 'deactivated', returned_by: item.assignee, note: 'Returned via Tool' })
+            });
+            const trData = await trResp.json();
+            if (trResp.ok) {
+              alert(`✅ Đã trả "${item.tb.title}" (deactivated) thành công!`);
+              document.getElementById('sm-btn-preview')?.click();
+            } else {
+              alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
+              btn.disabled = false;
+              btn.textContent = '↩️ Trả';
+            }
+          } catch (err) {
+            alert('Lỗi kết nối: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = '↩️ Trả';
+          }
+        });
+      });
+
+      // Add single QR button listeners
+      tbody.querySelectorAll('.sm-single-qr-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.getAttribute('data-idx'), 10);
+          const item = comparisonResults[idx];
+          if (!item || !item.serverBoxId) return;
+          openQRPrintWindow([item]);
+        });
+      });
+
+      // Add change event listeners to row checkboxes
+      tbody.querySelectorAll('.sm-row-check').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const idx = parseInt(cb.getAttribute('data-idx'), 10);
+          if (comparisonResults[idx]) comparisonResults[idx].isSelected = cb.checked;
+          updateSelectionSummary();
+        });
+      });
+
+      // Add change listeners to editable anchor inputs
+      tbody.querySelectorAll('.sm-anchor-row-input').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+          const idx = parseInt(inp.getAttribute('data-idx'), 10);
+          if (comparisonResults[idx] && comparisonResults[idx].tb) {
+            comparisonResults[idx].tb.anchor_object_id = e.target.value.trim();
+          }
+        });
+      });
+
+      updateSelectionSummary();
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        Quét & Xem trước
+      `;
+    }
+  });
+
+  // --- START FRESH & DRAFT RESET HELPER ---
+  function triggerStartFresh() {
+    // 1. Clear all taskbox draft keys in localStorage to prevent restoring stale form data
+    try {
+      Object.keys(localStorage).forEach(k => {
+        if (k.toLowerCase().includes('taskboxdraft') || k.toLowerCase().includes('draft')) {
+          localStorage.removeItem(k);
+        }
+      });
+    } catch (e) {
+      console.warn('Could not clear localStorage drafts:', e);
+    }
+
+    // 2. Click any visible "Start fresh" button/link on Scenario Manager UI modal
+    try {
+      const freshBtns = Array.from(document.querySelectorAll('button, a, span')).filter(el => 
+        el.textContent && el.textContent.trim().toLowerCase().includes('start fresh')
+      );
+      freshBtns.forEach(btn => {
+        if (typeof btn.click === 'function') {
+          btn.click();
+        }
+      });
+    } catch (e) {
+      console.warn('Could not click Start fresh button:', e);
+    }
+  }
+
+  // --- SYNC EXECUTION LOGIC (CREATE & UPDATE) ---
+  document.getElementById('sm-btn-sync').addEventListener('click', async () => {
+    if (!comparisonResults.length) return;
+
+    // Filter only boxes that are checked by user
+    const toSync = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP' && r.action !== 'SKIP_COLLECTED');
+    if (toSync.length === 0) {
+      alert('Chưa có taskbox nào được chọn hoặc các box được chọn không thể đồng bộ!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn Đồng bộ ${toSync.length} Taskbox đã chọn lên hệ thống?`)) return;
+
+    // Trigger Start Fresh before sync to clear stale drafts
+    triggerStartFresh();
+
+    const btnSync = document.getElementById('sm-btn-sync');
+    const btnPreview = document.getElementById('sm-btn-preview');
+    const progressBar = document.getElementById('sm-sync-progress');
+    const progressFill = document.getElementById('sm-progress-fill');
+    const logBox = document.getElementById('sm-log-box');
+
+    btnSync.disabled = true;
+    btnPreview.disabled = true;
+    progressBar.style.display = 'block';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    const log = (msg) => {
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`🧹 Đã bấm "Start fresh" & dọn sạch cache nháp cũ.`);
+    log(`🚀 Bắt đầu đồng bộ ${toSync.length} Taskbox...`);
+
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const item of toSync) {
+      const { tb, action, serverBoxId, assignee } = item;
+      done++;
+      progressFill.style.width = `${(done / toSync.length) * 100}%`;
+
+      try {
+        if (action === 'CREATE') {
+          const autoAssign = document.getElementById('sm-auto-assign-check')?.checked || false;
+          log(`[${tb.module} ${tb.stage}] Đang tạo mới "${tb.title}" (${tb.item_count} items)...`);
+          const createPayload = {
+            title: tb.title,
+            anchor_object_id: tb.anchor_object_id,
+            note: `Created for ${tb.title} from Sheet`,
+            contents: tb.contents,
+            borrow_now: false
+          };
+          if (autoAssign && assignee) {
+            createPayload.borrower = assignee;
+            createPayload.assignee = assignee;
+          }
+          const cr = await fetch('/api/boxes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(createPayload)
+          });
+          const cd = await cr.json();
+          const newBoxId = cd.box_id || cd.id;
+
+          if (newBoxId) {
+            if (autoAssign && assignee) {
+              await fetch(`/api/boxes/${encodeURIComponent(newBoxId)}/transition`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to: 'assigned', assignee: assignee })
+              });
+              log(`✅ [${tb.module} ${tb.stage}] Tạo & đã Assign cho ${assignee}! (Box ID: ${newBoxId})`);
+            } else {
+              log(`✅ [${tb.module} ${tb.stage}] Tạo mới thành công ở trạng thái "created" (Dễ dàng chỉnh sửa tiếp)! (Box ID: ${newBoxId})`);
+            }
+            success++;
+          } else {
+            throw new Error(cd.detail || 'Không lấy được ID box mới');
+          }
+        } else if (action === 'UPDATE') {
+          log(`[${tb.module} ${tb.stage}] Đang cập nhật nội dung box ${serverBoxId}...`);
+          const updatePayload = {
+            title: tb.title,
+            anchor_object_id: tb.anchor_object_id,
+            note: `Updated for ${tb.title} from Sheet`,
+            contents: tb.contents,
+            borrow_now: false
+          };
+          const ur = await fetch(`/api/boxes/${encodeURIComponent(serverBoxId)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatePayload)
+          });
+          const ud = await ur.json();
+
+          if (ur.ok) {
+            log(`✅ [${tb.module} ${tb.stage}] Cập nhật thành công! (${tb.item_count} items)`);
+            success++;
+          } else {
+            throw new Error(ud.detail || 'Lỗi khi cập nhật box');
+          }
+        }
+      } catch (e) {
+        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
+        failed++;
+      }
+
+      // Small delay to prevent network flood
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    log(`🎉 HOÀN TẤT ĐỒNG BỘ: ${success} thành công, ${failed} lỗi.`);
+    btnPreview.disabled = false;
+    btnPreview.click(); // Re-audit to update table
+  });
+
+  // --- INDEPENDENT ASSIGN EXECUTION LOGIC ---
+  document.getElementById('sm-btn-assign-only')?.addEventListener('click', async () => {
+    if (!comparisonResults.length) return;
+    const toAssign = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'created');
+    if (toAssign.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "created" để gán Assignee!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn Gán Assignee cho ${toAssign.length} Taskbox đã chọn?`)) return;
+
+    const btnSync = document.getElementById('sm-btn-sync');
+    const btnAssign = document.getElementById('sm-btn-assign-only');
+    const btnPreview = document.getElementById('sm-btn-preview');
+    const progressBar = document.getElementById('sm-sync-progress');
+    const progressFill = document.getElementById('sm-progress-fill');
+    const logBox = document.getElementById('sm-log-box');
+
+    if (btnSync) btnSync.disabled = true;
+    if (btnAssign) btnAssign.disabled = true;
+    if (btnPreview) btnPreview.disabled = true;
+    progressBar.style.display = 'block';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    const log = (msg) => {
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`👤 Bắt đầu gán Assignee cho ${toAssign.length} Taskbox...`);
+
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const item of toAssign) {
+      const { tb, serverBoxId, assignee } = item;
+      done++;
+      progressFill.style.width = `${(done / toAssign.length) * 100}%`;
+
+      try {
+        log(`[${tb.module} ${tb.stage}] Đang gán box ${serverBoxId} cho người lấy ID: ${assignee}...`);
+        const trResp = await fetch(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: 'assigned', assignee: assignee })
+        });
+        const trData = await trResp.json();
+        if (trResp.ok) {
+          log(`✅ [${tb.module} ${tb.stage}] Đã gán thành công cho ${assignee}!`);
+          success++;
+        } else {
+          throw new Error(trData.detail || 'Lỗi khi gán assignee');
+        }
+      } catch (e) {
+        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    log(`🎉 HOÀN TẤT GÁN ASSIGNEE: ${success} thành công, ${failed} lỗi.`);
+    if (btnPreview) btnPreview.disabled = false;
+    btnPreview?.click(); // Re-audit to update table
+  });
+
+  // --- INDEPENDENT BORROW EXECUTION LOGIC (MƯỢN ĐỒ -> COLLECTED) ---
+  document.getElementById('sm-btn-borrow-only')?.addEventListener('click', async () => {
+    if (!comparisonResults.length) return;
+    const toBorrow = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'assigned');
+    if (toBorrow.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "assigned" để Mượn đồ!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn MƯỢN ${toBorrow.length} Taskbox đã chọn?`)) return;
+
+    const btnSync = document.getElementById('sm-btn-sync');
+    const btnBorrow = document.getElementById('sm-btn-borrow-only');
+    const btnPreview = document.getElementById('sm-btn-preview');
+    const progressBar = document.getElementById('sm-sync-progress');
+    const progressFill = document.getElementById('sm-progress-fill');
+    const logBox = document.getElementById('sm-log-box');
+
+    if (btnSync) btnSync.disabled = true;
+    if (btnBorrow) btnBorrow.disabled = true;
+    if (btnPreview) btnPreview.disabled = true;
+    progressBar.style.display = 'block';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    const log = (msg) => {
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`📦 Bắt đầu chuyển trạng thái MƯỢN ĐỒ (collected) cho ${toBorrow.length} Taskbox...`);
+
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const item of toBorrow) {
+      const { tb, serverBoxId, assignee } = item;
+      done++;
+      progressFill.style.width = `${(done / toBorrow.length) * 100}%`;
+
+      try {
+        log(`[${tb.module} ${tb.stage}] Đang mượn box ${serverBoxId} (người lấy: ${assignee})...`);
+        const trResp = await fetch(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'collected',
+            borrower: assignee,
+            assignee: assignee,
+            note: 'Borrowed via Tool'
+          })
+        });
+        const trData = await trResp.json();
+        if (trResp.ok) {
+          log(`✅ [${tb.module} ${tb.stage}] Đã mượn thành công!`);
+          success++;
+        } else {
+          throw new Error(trData.detail || 'Lỗi khi mượn đồ');
+        }
+      } catch (e) {
+        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    log(`🎉 HOÀN TẤT MƯỢN ĐỒ: ${success} thành công, ${failed} lỗi.`);
+    if (btnPreview) btnPreview.disabled = false;
+    btnPreview?.click();
+  });
+
+  // --- INDEPENDENT RETURN EXECUTION LOGIC (TRẢ ĐỒ -> DEACTIVATED) ---
+  document.getElementById('sm-btn-return-only')?.addEventListener('click', async () => {
+    if (!comparisonResults.length) return;
+    const toReturn = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'collected');
+    if (toReturn.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "collected" để Trả đồ!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn TRẢ ${toReturn.length} Taskbox đã chọn?`)) return;
+
+    const btnSync = document.getElementById('sm-btn-sync');
+    const btnReturn = document.getElementById('sm-btn-return-only');
+    const btnPreview = document.getElementById('sm-btn-preview');
+    const progressBar = document.getElementById('sm-sync-progress');
+    const progressFill = document.getElementById('sm-progress-fill');
+    const logBox = document.getElementById('sm-log-box');
+
+    if (btnSync) btnSync.disabled = true;
+    if (btnReturn) btnReturn.disabled = true;
+    if (btnPreview) btnPreview.disabled = true;
+    progressBar.style.display = 'block';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    const log = (msg) => {
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`↩️ Bắt đầu TRẢ ĐỒ (deactivated) cho ${toReturn.length} Taskbox...`);
+
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const item of toReturn) {
+      const { tb, serverBoxId, assignee } = item;
+      done++;
+      progressFill.style.width = `${(done / toReturn.length) * 100}%`;
+
+      try {
+        log(`[${tb.module} ${tb.stage}] Đang trả box ${serverBoxId}...`);
+        const trResp = await fetch(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'deactivated',
+            returned_by: assignee,
+            note: 'Returned via Tool'
+          })
+        });
+        const trData = await trResp.json();
+        if (trResp.ok) {
+          log(`✅ [${tb.module} ${tb.stage}] Đã trả thành công!`);
+          success++;
+        } else {
+          throw new Error(trData.detail || 'Lỗi khi trả đồ');
+        }
+      } catch (e) {
+        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    log(`🎉 HOÀN TẤT TRẢ ĐỒ: ${success} thành công, ${failed} lỗi.`);
+    if (btnPreview) btnPreview.disabled = false;
+    btnPreview?.click();
+  });
+
+  // --- QR CODE PRINTING POPUP WINDOW GENERATOR ---
+  function formatDateVN(dateVal) {
+    if (!dateVal) {
+      const now = new Date();
+      return now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    }
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function openQRPrintWindow(items) {
+    if (!items || items.length === 0) {
+      alert('Không có Taskbox nào có sẵn ID trên Scenario Manager để in mã QR! Vui lòng bấm "🚀 Đồng bộ Đồ" trước.');
+      return;
+    }
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('Trình duyệt đã chặn cửa sổ bật lên (Pop-up). Vui lòng cho phép Pop-up để xem trang in!');
+      return;
+    }
+
+    const cardsHtml = items.map((item, idx) => {
+      const boxId = item.serverBoxId || (item.tb && item.tb.box_id) || '';
+      const boxUrl = `https://sm.config.inc/boxes/${encodeURIComponent(boxId)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(boxUrl)}`;
+      const title = (item.tb && item.tb.title) || 'TaskBox';
+      const module = (item.tb && item.tb.module) || '';
+      const stage = (item.tb && item.tb.stage) || '';
+      const anchor = (item.tb && item.tb.anchor_object_id) || '';
+      const totalQty = (item.tb && item.tb.total_qty) || 0;
+      const itemCount = (item.tb && item.tb.item_count) || 0;
+      const assignee = item.assignee || '';
+      const dateStr = formatDateVN(item.serverCreatedAt);
+
+      return `
+        <div class="label-card">
+          <div class="label-qr-wrap">
+            <img src="${qrUrl}" alt="QR for ${title}" loading="eager" />
+          </div>
+          <div class="label-info">
+            <div class="label-title">${title}</div>
+            <div class="label-badge-row">
+              <span class="label-badge label-badge-stage">${stage}</span>
+              <span class="label-badge">Mod: ${module}</span>
+              ${anchor ? `<span class="label-badge">Anchor: ${anchor}</span>` : ''}
+              ${assignee ? `<span class="label-badge" style="background:#e0e7ff; color:#3730a3;">👤 ${assignee}</span>` : ''}
+            </div>
+            <div class="label-meta-text">
+              <span><b>${totalQty}</b> đồ (${itemCount} loại)</span>
+            </div>
+            <div class="label-date">📅 Ngày tạo: <b>${dateStr}</b></div>
+            <div class="label-id">ID: ${boxId}</div>
+            <div class="label-link">${boxUrl}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const pageHtml = `
+      <!DOCTYPE html>
+      <html lang="vi">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>In Nhãn Mã QR TaskBoxes (${items.length} Box)</title>
+        <style>
+          * { box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background: #f8fafc;
+            color: #0f172a;
+          }
+          .toolbar {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+          }
+          .toolbar-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .toolbar-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          }
+          .btn-print {
+            background: #16a34a;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+          }
+          .btn-print:hover { background: #15803d; }
+          .grid-toggle-btn {
+            background: #334155;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+          }
+          .grid-toggle-btn:hover { background: #475569; }
+
+          .label-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+          .label-grid.cols-3 {
+            grid-template-columns: repeat(3, 1fr);
+          }
+          .label-card {
+            background: #ffffff;
+            border: 1.5px dashed #64748b;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            min-height: 145px;
+          }
+          .label-qr-wrap {
+            flex-shrink: 0;
+            width: 110px;
+            height: 110px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 3px;
+          }
+          .label-qr-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+          }
+          .label-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+          }
+          .label-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.25;
+            margin: 0;
+            word-break: break-word;
+          }
+          .label-badge-row {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 2px 0;
+          }
+          .label-badge {
+            background: #f1f5f9;
+            color: #334155;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid #e2e8f0;
+          }
+          .label-badge-stage {
+            background: #dbeafe;
+            color: #1e40af;
+            border-color: #bfdbfe;
+          }
+          .label-meta-text {
+            font-size: 12px;
+            color: #475569;
+          }
+          .label-date {
+            font-size: 11px;
+            color: #334155;
+          }
+          .label-id {
+            font-size: 10px;
+            font-family: monospace;
+            color: #64748b;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .label-link {
+            font-size: 9px;
+            color: #2563eb;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          @media print {
+            body {
+              background: #fff;
+              padding: 0;
+              margin: 0;
+            }
+            .no-print { display: none !important; }
+            .label-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 8mm !important;
+            }
+            .label-grid.cols-3 {
+              grid-template-columns: repeat(3, 1fr) !important;
+              gap: 5mm !important;
+            }
+            .label-card {
+              border: 1px dashed #475569 !important;
+              box-shadow: none !important;
+              padding: 8px 10px !important;
+              min-height: 130px !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 8mm;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="toolbar no-print">
+          <div class="toolbar-title">
+            <span>🏷️ Nhãn Mã QR TaskBoxes (${items.length} Box)</span>
+          </div>
+          <div class="toolbar-actions">
+            <button class="grid-toggle-btn" onclick="document.getElementById('grid').classList.toggle('cols-3')">
+              🔄 Đổi 2 Cột / 3 Cột
+            </button>
+            <button class="btn-print" onclick="window.print()">
+              🖨️ Bấm In Ngay (Print / PDF)
+            </button>
+          </div>
+        </div>
+
+        <div class="label-grid" id="grid">
+          ${cardsHtml}
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(pageHtml);
+    printWin.document.close();
+  }
+
+  // --- BATCH QR PRINT BUTTON LISTENER ---
+  document.getElementById('sm-btn-print-qr')?.addEventListener('click', () => {
+    if (!comparisonResults.length) return;
+    const toPrint = comparisonResults.filter(r => r.isSelected && r.serverBoxId);
+    if (toPrint.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 Taskbox đã có trên hệ thống để in mã QR!');
+      return;
+    }
+    openQRPrintWindow(toPrint);
+  });
+
+  // ==========================================
+  // --- TAB SWITCHING & WEB MANAGER LOGIC ---
+  // ==========================================
+  const tabBtnSheet = document.getElementById('sm-tab-btn-sheet');
+  const tabBtnWeb = document.getElementById('sm-tab-btn-web');
+  const tabPaneSheet = document.getElementById('sm-tab-pane-sheet');
+  const tabPaneWeb = document.getElementById('sm-tab-pane-web');
+
+  tabBtnSheet?.addEventListener('click', () => {
+    tabBtnSheet.classList.add('sm-tab-active');
+    tabBtnWeb.classList.remove('sm-tab-active');
+    if (tabPaneSheet) tabPaneSheet.style.display = 'flex';
+    if (tabPaneWeb) tabPaneWeb.style.display = 'none';
+  });
+
+  tabBtnWeb?.addEventListener('click', () => {
+    tabBtnWeb.classList.add('sm-tab-active');
+    tabBtnSheet.classList.remove('sm-tab-active');
+    if (tabPaneWeb) tabPaneWeb.style.display = 'flex';
+    if (tabPaneSheet) tabPaneSheet.style.display = 'none';
+
+    if (rawWebBoxesCache.length === 0) {
+      fetchWebBoxes();
+    }
+  });
+
+  // --- LIVE WEB TASKBOX MANAGER STATE & HELPERS ---
+  let rawWebBoxesCache = [];
+  let filteredWebBoxes = [];
+  let currentWebDateFilter = 'today';
+  let currentWebStatusFilter = 'active';
+
+  function getBoxLocalDateStr(dateVal) {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  async function fetchWebBoxes() {
+    triggerStartFresh();
+    const btnFetch = document.getElementById('sm-web-btn-fetch');
+    if (btnFetch) {
+      btnFetch.disabled = true;
+      btnFetch.innerHTML = '⏳ Đang quét Web...';
+    }
+
+    try {
+      const resp = await fetch('/api/boxes?limit=500');
+      const data = await resp.json();
+      rawWebBoxesCache = data.boxes || data || [];
+      filterWebBoxes();
+    } catch (err) {
+      alert('Lỗi khi tải TaskBox từ Scenario Manager: ' + err.message);
+    } finally {
+      if (btnFetch) {
+        btnFetch.disabled = false;
+        btnFetch.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Quét TaskBox từ Web
+        `;
+      }
+    }
+  }
+
+  function filterWebBoxes() {
+    const customDate = document.getElementById('sm-web-date-picker')?.value;
+    const searchTerm = (document.getElementById('sm-web-search-input')?.value || '').trim().toLowerCase();
+
+    const todayStr = getBoxLocalDateStr(new Date());
+    const yesterdayStr = getBoxLocalDateStr(new Date(Date.now() - 86400000));
+    const threeDaysAgoMs = Date.now() - (3 * 86400000);
+
+    filteredWebBoxes = rawWebBoxesCache.filter(b => {
+      // 1. Status Filter
+      if (currentWebStatusFilter === 'active' && b.status === 'deactivated') return false;
+      if (currentWebStatusFilter === 'collected' && b.status !== 'collected') return false;
+      if (currentWebStatusFilter === 'assigned' && b.status !== 'assigned') return false;
+      if (currentWebStatusFilter === 'created' && b.status !== 'created') return false;
+
+      // 2. Date Filter
+      const boxDateStr = getBoxLocalDateStr(b.created_at);
+      const boxTimeMs = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+      if (currentWebDateFilter === 'today' && boxDateStr !== todayStr) return false;
+      if (currentWebDateFilter === 'yesterday' && boxDateStr !== yesterdayStr) return false;
+      if (currentWebDateFilter === 'last3days' && (!boxTimeMs || boxTimeMs < threeDaysAgoMs)) return false;
+      if (currentWebDateFilter === 'custom' && customDate && boxDateStr !== customDate) return false;
+
+      // 3. Search Filter
+      if (searchTerm) {
+        const title = (b.title || '').toLowerCase();
+        const id = (b.id || b.box_id || '').toLowerCase();
+        const holder = (b.current_holder || b.borrower || b.assignee || '').toLowerCase();
+        const anchor = (b.anchor_object_id || '').toLowerCase();
+        if (!title.includes(searchTerm) && !id.includes(searchTerm) && !holder.includes(searchTerm) && !anchor.includes(searchTerm)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Default select state
+    filteredWebBoxes.forEach(b => {
+      if (typeof b.isSelected === 'undefined') b.isSelected = false;
+    });
+
+    renderWebTable();
+  }
+
+  function renderWebTable() {
+    const tbody = document.getElementById('sm-web-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (filteredWebBoxes.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10" style="text-align:center; color:#64748b; padding:24px;">
+            Không tìm thấy TaskBox nào phù hợp với bộ lọc hiện tại.
+          </td>
+        </tr>
+      `;
+      updateWebSelectionSummary();
+      return;
+    }
+
+    filteredWebBoxes.forEach((b, idx) => {
+      const boxId = b.id || b.box_id || '';
+      const title = b.title || 'TaskBox';
+      const status = b.status || 'unknown';
+      const holder = b.current_holder || b.borrower || b.assignee || '-';
+      const anchor = b.anchor_object_id || '-';
+      const contents = b.contents || [];
+      const totalQty = contents.reduce((sum, c) => sum + (c.quantity || 1), 0);
+      const itemCount = contents.length;
+      const dateStr = formatDateVN(b.created_at);
+
+      let mod = '-';
+      let stage = '-';
+      const mMatch = title.match(/M\d+(?:-\d+)?/i);
+      if (mMatch) mod = mMatch[0].toUpperCase();
+      const sMatch = title.match(/(?:A\d|B\d)/i);
+      if (sMatch) stage = sMatch[0].toUpperCase();
+
+      let statusBadge = 'sm-badge-skip';
+      if (status === 'collected') { statusBadge = 'sm-badge-collected'; }
+      else if (status === 'assigned') { statusBadge = 'sm-badge-create'; }
+      else if (status === 'created') { statusBadge = 'sm-badge-update'; }
+      else if (status === 'deactivated') { statusBadge = 'sm-badge-skip'; }
+
+      let actionBtns = '';
+      if (status === 'collected' || status === 'assigned') {
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">🤝 Giao</button>`;
+      }
+      if (status === 'collected') {
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Trả đồ">↩️ Trả</button>`;
+      }
+      if (status === 'assigned') {
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Mượn đồ">📦 Mượn</button>`;
+      }
+      actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-qr-btn" data-idx="${idx}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR">🖨️ QR</button>`;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align:center;"><input type="checkbox" class="sm-web-row-check" data-idx="${idx}" ${b.isSelected ? 'checked' : ''} /></td>
+        <td><code style="color:#a5f3fc; font-size:11px;">${boxId}</code></td>
+        <td><b>${title}</b></td>
+        <td><span style="color:#60a5fa; font-weight:600;">${mod}</span> <span style="color:#38bdf8; font-weight:700;">${stage}</span></td>
+        <td><code>${anchor}</code></td>
+        <td><b>${totalQty}</b> (${itemCount} items)</td>
+        <td><span style="background:#1e293b; padding:2px 6px; border-radius:4px; color:#38bdf8; font-weight:600;">👤 ${holder}</span></td>
+        <td style="font-size:11px; color:#94a3b8;">${dateStr}</td>
+        <td><span class="sm-badge ${statusBadge}">${status}</span></td>
+        <td style="text-align:center; white-space:nowrap;">${actionBtns}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    attachWebRowEvents();
+    updateWebSelectionSummary();
+  }
+
+  function attachWebRowEvents() {
+    const tbody = document.getElementById('sm-web-tbody');
+    if (!tbody) return;
+
+    // Checkboxes
+    tbody.querySelectorAll('.sm-web-row-check').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const idx = parseInt(cb.getAttribute('data-idx'), 10);
+        if (filteredWebBoxes[idx]) filteredWebBoxes[idx].isSelected = cb.checked;
+        updateWebSelectionSummary();
+      });
+    });
+
+    // Single Handover
+    tbody.querySelectorAll('.sm-web-row-handover-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const b = filteredWebBoxes[idx];
+        if (!b) return;
+
+        let receiver = (document.getElementById('sm-web-handover-receiver')?.value || '').trim();
+        if (!receiver) {
+          receiver = prompt(`Nhập ID người nhận mới cho "${b.title}":`, b.assignee || '');
+          if (!receiver) return;
+          receiver = receiver.trim();
+        }
+        const note = (document.getElementById('sm-web-handover-note')?.value || '').trim() || 'Bàn giao ca qua Tool';
+
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const boxId = b.id || b.box_id;
+          const r = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ receiver, note })
+          });
+          const data = await r.json();
+          if (r.ok) {
+            alert(`✅ Đã bàn giao "${b.title}" cho ${receiver} thành công!`);
+            await fetchWebBoxes();
+          } else {
+            alert(`❌ Lỗi: ${data.detail || data.error || 'Không thể bàn giao'}`);
+            btn.disabled = false;
+            btn.textContent = '🤝 Giao';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '🤝 Giao';
+        }
+      });
+    });
+
+    // Single Return
+    tbody.querySelectorAll('.sm-web-row-return-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const b = filteredWebBoxes[idx];
+        if (!b) return;
+        const boxId = b.id || b.box_id;
+        const holder = b.current_holder || b.borrower || b.assignee || '';
+
+        if (!confirm(`Bạn có chắc muốn TRẢ đồ cho "${b.title}"?`)) return;
+
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'deactivated', returned_by: holder, note: 'Returned via Tool' })
+          });
+          const trData = await trResp.json();
+          if (trResp.ok) {
+            alert(`✅ Đã trả "${b.title}" thành công!`);
+            await fetchWebBoxes();
+          } else {
+            alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
+            btn.disabled = false;
+            btn.textContent = '↩️ Trả';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '↩️ Trả';
+        }
+      });
+    });
+
+    // Single Borrow
+    tbody.querySelectorAll('.sm-web-row-borrow-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const b = filteredWebBoxes[idx];
+        if (!b) return;
+        const boxId = b.id || b.box_id;
+        const assignee = b.assignee || b.current_holder || '';
+
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+        try {
+          const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: 'collected', borrower: assignee, assignee: assignee, note: 'Borrowed via Tool' })
+          });
+          const trData = await trResp.json();
+          if (trResp.ok) {
+            alert(`✅ Đã mượn "${b.title}" thành công!`);
+            await fetchWebBoxes();
+          } else {
+            alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
+            btn.disabled = false;
+            btn.textContent = '📦 Mượn';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '📦 Mượn';
+        }
+      });
+    });
+
+    // Single QR
+    tbody.querySelectorAll('.sm-web-row-qr-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const b = filteredWebBoxes[idx];
+        if (!b) return;
+        const contents = b.contents || [];
+        let mod = '-';
+        let stage = '-';
+        const mMatch = (b.title || '').match(/M\d+(?:-\d+)?/i);
+        if (mMatch) mod = mMatch[0].toUpperCase();
+        const sMatch = (b.title || '').match(/(?:A\d|B\d)/i);
+        if (sMatch) stage = sMatch[0].toUpperCase();
+
+        openQRPrintWindow([{
+          serverBoxId: b.id || b.box_id,
+          serverCreatedAt: b.created_at,
+          assignee: b.current_holder || b.borrower || b.assignee || '',
+          tb: {
+            title: b.title || 'TaskBox',
+            module: mod,
+            stage: stage,
+            anchor_object_id: b.anchor_object_id || '',
+            total_qty: contents.reduce((sum, c) => sum + (c.quantity || 1), 0),
+            item_count: contents.length
+          }
+        }]);
+      });
+    });
+  }
+
+  function updateWebSelectionSummary() {
+    const checkboxes = Array.from(document.querySelectorAll('.sm-web-row-check'));
+    checkboxes.forEach(cb => {
+      const idx = parseInt(cb.getAttribute('data-idx'), 10);
+      if (filteredWebBoxes[idx]) filteredWebBoxes[idx].isSelected = cb.checked;
+    });
+
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    const selectedCount = selectedBoxes.length;
+    const totalCount = filteredWebBoxes.length;
+
+    const countDisplay = document.getElementById('sm-web-selection-count');
+    const handoverBtn = document.getElementById('sm-web-btn-handover');
+    const handoverText = document.getElementById('sm-web-handover-text');
+    const returnBtn = document.getElementById('sm-web-btn-return');
+    const returnText = document.getElementById('sm-web-return-text');
+    const borrowBtn = document.getElementById('sm-web-btn-borrow');
+    const borrowText = document.getElementById('sm-web-borrow-text');
+    const printBtn = document.getElementById('sm-web-btn-print-qr');
+    const printText = document.getElementById('sm-web-print-text');
+
+    const selectedCollected = selectedBoxes.filter(b => b.status === 'collected');
+    const selectedAssigned = selectedBoxes.filter(b => b.status === 'assigned');
+
+    if (countDisplay) {
+      countDisplay.textContent = `Đã chọn: ${selectedCount} / ${totalCount} box`;
+    }
+    if (handoverText) {
+      handoverText.textContent = `Bàn giao (${selectedCount})`;
+    }
+    if (handoverBtn) {
+      handoverBtn.disabled = (selectedCount === 0);
+    }
+    if (returnText) {
+      returnText.textContent = `Trả đồ (${selectedCollected.length})`;
+    }
+    if (returnBtn) {
+      returnBtn.disabled = (selectedCollected.length === 0);
+    }
+    if (borrowText) {
+      borrowText.textContent = `Mượn đồ (${selectedAssigned.length})`;
+    }
+    if (borrowBtn) {
+      borrowBtn.disabled = (selectedAssigned.length === 0);
+    }
+    if (printText) {
+      printText.textContent = `In QR (${selectedCount})`;
+    }
+    if (printBtn) {
+      printBtn.disabled = (selectedCount === 0);
+    }
+
+    const thSelectAll = document.getElementById('sm-web-th-select-all');
+    if (thSelectAll && totalCount > 0) {
+      thSelectAll.checked = (selectedCount === totalCount);
+      thSelectAll.indeterminate = (selectedCount > 0 && selectedCount < totalCount);
+    }
+  }
+
+  function setWebRowSelections(predicate) {
+    const checkboxes = Array.from(document.querySelectorAll('.sm-web-row-check'));
+    checkboxes.forEach((cb) => {
+      const idx = parseInt(cb.getAttribute('data-idx'), 10);
+      const item = filteredWebBoxes[idx];
+      const shouldCheck = !!predicate(item, idx);
+      cb.checked = shouldCheck;
+      if (item) item.isSelected = shouldCheck;
+    });
+    updateWebSelectionSummary();
+  }
+
+  // --- WEB FILTER & ACTION EVENT LISTENERS ---
+  // Date filter pills
+  document.querySelectorAll('.sm-web-date-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.sm-web-date-pill').forEach(p => p.classList.remove('sm-pill-active'));
+      pill.classList.add('sm-pill-active');
+      currentWebDateFilter = pill.getAttribute('data-range');
+      if (document.getElementById('sm-web-date-picker')) {
+        document.getElementById('sm-web-date-picker').value = '';
+      }
+      filterWebBoxes();
+    });
+  });
+
+  document.getElementById('sm-web-date-picker')?.addEventListener('change', (e) => {
+    if (e.target.value) {
+      document.querySelectorAll('.sm-web-date-pill').forEach(p => p.classList.remove('sm-pill-active'));
+      currentWebDateFilter = 'custom';
+      filterWebBoxes();
+    }
+  });
+
+  // Status filter pills
+  document.querySelectorAll('.sm-web-status-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.sm-web-status-pill').forEach(p => p.classList.remove('sm-pill-active'));
+      pill.classList.add('sm-pill-active');
+      currentWebStatusFilter = pill.getAttribute('data-status');
+      filterWebBoxes();
+    });
+  });
+
+  // Search Input
+  document.getElementById('sm-web-search-input')?.addEventListener('input', () => {
+    filterWebBoxes();
+  });
+
+  // Fetch Button
+  document.getElementById('sm-web-btn-fetch')?.addEventListener('click', () => {
+    fetchWebBoxes();
+  });
+
+  // Quick Selection Pills
+  document.getElementById('sm-web-sel-all')?.addEventListener('click', () => setWebRowSelections(() => true));
+  document.getElementById('sm-web-sel-none')?.addEventListener('click', () => setWebRowSelections(() => false));
+  document.getElementById('sm-web-sel-collected')?.addEventListener('click', () => setWebRowSelections(item => item && item.status === 'collected'));
+  document.getElementById('sm-web-sel-assigned')?.addEventListener('click', () => setWebRowSelections(item => item && item.status === 'assigned'));
+
+  document.getElementById('sm-web-th-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    setWebRowSelections(() => checked);
+  });
+
+  // Batch Handover Button
+  document.getElementById('sm-web-btn-handover')?.addEventListener('click', async () => {
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 TaskBox để Bàn giao!');
+      return;
+    }
+
+    let receiver = (document.getElementById('sm-web-handover-receiver')?.value || '').trim();
+    if (!receiver) {
+      receiver = prompt(`Nhập ID người nhận mới cho ${selectedBoxes.length} TaskBox đã chọn:`);
+      if (!receiver) return;
+      receiver = receiver.trim();
+      if (document.getElementById('sm-web-handover-receiver')) {
+        document.getElementById('sm-web-handover-receiver').value = receiver;
+      }
+    }
+
+    const note = (document.getElementById('sm-web-handover-note')?.value || '').trim() || 'Bàn giao ca qua Tool';
+
+    if (!confirm(`Bạn có chắc chắn muốn BÀN GIAO ${selectedBoxes.length} TaskBox đã chọn cho người nhận ID: "${receiver}"?`)) return;
+
+    const btnHandover = document.getElementById('sm-web-btn-handover');
+    const btnReturn = document.getElementById('sm-web-btn-return');
+    const progressBar = document.getElementById('sm-web-progress');
+    const progressFill = document.getElementById('sm-web-progress-fill');
+    const logBox = document.getElementById('sm-web-log-box');
+
+    if (btnHandover) btnHandover.disabled = true;
+    if (btnReturn) btnReturn.disabled = true;
+    if (progressBar) progressBar.style.display = 'block';
+    if (logBox) {
+      logBox.style.display = 'block';
+      logBox.innerHTML = '';
+    }
+
+    const log = (msg) => {
+      if (!logBox) return;
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`🤝 Bắt đầu bàn giao ${selectedBoxes.length} TaskBox cho ${receiver}...`);
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const b of selectedBoxes) {
+      const boxId = b.id || b.box_id;
+      done++;
+      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+
+      try {
+        log(`Đang bàn giao box ${boxId} ("${b.title}")...`);
+        const r = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiver: receiver,
+            note: note
+          })
+        });
+        const data = await r.json();
+        if (r.ok) {
+          log(`✅ Box ${boxId} đã bàn giao thành công cho ${receiver}!`);
+          success++;
+        } else {
+          throw new Error(data.detail || data.error || 'Lỗi bàn giao');
+        }
+      } catch (e) {
+        log(`❌ Box ${boxId} thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(res => setTimeout(res, 100));
+    }
+
+    log(`🎉 HOÀN TẤT BÀN GIAO: ${success} thành công, ${failed} lỗi.`);
+    if (btnHandover) btnHandover.disabled = false;
+    if (btnReturn) btnReturn.disabled = false;
+
+    await fetchWebBoxes();
+  });
+
+  // Batch Return Button
+  document.getElementById('sm-web-btn-return')?.addEventListener('click', async () => {
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && b.status === 'collected');
+    if (selectedBoxes.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "collected" (Đang mượn) để Trả đồ!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn TRẢ ${selectedBoxes.length} TaskBox đã chọn?`)) return;
+
+    const btnHandover = document.getElementById('sm-web-btn-handover');
+    const btnReturn = document.getElementById('sm-web-btn-return');
+    const progressBar = document.getElementById('sm-web-progress');
+    const progressFill = document.getElementById('sm-web-progress-fill');
+    const logBox = document.getElementById('sm-web-log-box');
+
+    if (btnHandover) btnHandover.disabled = true;
+    if (btnReturn) btnReturn.disabled = true;
+    if (progressBar) progressBar.style.display = 'block';
+    if (logBox) {
+      logBox.style.display = 'block';
+      logBox.innerHTML = '';
+    }
+
+    const log = (msg) => {
+      if (!logBox) return;
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`↩️ Bắt đầu TRẢ ĐỒ (deactivated) cho ${selectedBoxes.length} TaskBox...`);
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const b of selectedBoxes) {
+      const boxId = b.id || b.box_id;
+      const holder = b.current_holder || b.borrower || b.assignee || '';
+      done++;
+      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+
+      try {
+        log(`Đang trả box ${boxId} ("${b.title}")...`);
+        const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'deactivated',
+            returned_by: holder,
+            note: 'Returned via Web Manager'
+          })
+        });
+        const trData = await trResp.json();
+        if (trResp.ok) {
+          log(`✅ Box ${boxId} đã trả thành công!`);
+          success++;
+        } else {
+          throw new Error(trData.detail || trData.error || 'Lỗi trả đồ');
+        }
+      } catch (e) {
+        log(`❌ Box ${boxId} thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(res => setTimeout(res, 100));
+    }
+
+    log(`🎉 HOÀN TẤT TRẢ ĐỒ: ${success} thành công, ${failed} lỗi.`);
+    if (btnHandover) btnHandover.disabled = false;
+    if (btnReturn) btnReturn.disabled = false;
+
+    await fetchWebBoxes();
+  });
+
+  // Batch Borrow Button
+  document.getElementById('sm-web-btn-borrow')?.addEventListener('click', async () => {
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && b.status === 'assigned');
+    if (selectedBoxes.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "assigned" (Đã gán) để Mượn đồ!');
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn MƯỢN ${selectedBoxes.length} TaskBox đã chọn?`)) return;
+
+    const btnBorrow = document.getElementById('sm-web-btn-borrow');
+    const progressBar = document.getElementById('sm-web-progress');
+    const progressFill = document.getElementById('sm-web-progress-fill');
+    const logBox = document.getElementById('sm-web-log-box');
+
+    if (btnBorrow) btnBorrow.disabled = true;
+    if (progressBar) progressBar.style.display = 'block';
+    if (logBox) {
+      logBox.style.display = 'block';
+      logBox.innerHTML = '';
+    }
+
+    const log = (msg) => {
+      if (!logBox) return;
+      const p = document.createElement('div');
+      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(p);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    log(`📦 Bắt đầu MƯỢN ĐỒ (collected) cho ${selectedBoxes.length} TaskBox...`);
+    let done = 0;
+    let success = 0;
+    let failed = 0;
+
+    for (const b of selectedBoxes) {
+      const boxId = b.id || b.box_id;
+      const assignee = b.assignee || b.current_holder || '';
+      done++;
+      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+
+      try {
+        log(`Đang mượn box ${boxId} ("${b.title}")...`);
+        const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: 'collected',
+            borrower: assignee,
+            assignee: assignee,
+            note: 'Borrowed via Web Manager'
+          })
+        });
+        const trData = await trResp.json();
+        if (trResp.ok) {
+          log(`✅ Box ${boxId} đã mượn thành công!`);
+          success++;
+        } else {
+          throw new Error(trData.detail || trData.error || 'Lỗi mượn đồ');
+        }
+      } catch (e) {
+        log(`❌ Box ${boxId} thất bại: ${e.message}`);
+        failed++;
+      }
+      await new Promise(res => setTimeout(res, 100));
+    }
+
+    log(`🎉 HOÀN TẤT MƯỢN ĐỒ: ${success} thành công, ${failed} lỗi.`);
+    if (btnBorrow) btnBorrow.disabled = false;
+
+    await fetchWebBoxes();
+  });
+
+  // Batch Print QR Button
+  document.getElementById('sm-web-btn-print-qr')?.addEventListener('click', () => {
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 TaskBox để in mã QR!');
+      return;
+    }
+
+    const qrItems = selectedBoxes.map(b => {
+      const contents = b.contents || [];
+      let mod = '-';
+      let stage = '-';
+      const mMatch = (b.title || '').match(/M\d+(?:-\d+)?/i);
+      if (mMatch) mod = mMatch[0].toUpperCase();
+      const sMatch = (b.title || '').match(/(?:A\d|B\d)/i);
+      if (sMatch) stage = sMatch[0].toUpperCase();
+
+      return {
+        serverBoxId: b.id || b.box_id,
+        serverCreatedAt: b.created_at,
+        assignee: b.current_holder || b.borrower || b.assignee || '',
+        tb: {
+          title: b.title || 'TaskBox',
+          module: mod,
+          stage: stage,
+          anchor_object_id: b.anchor_object_id || '',
+          total_qty: contents.reduce((sum, c) => sum + (c.quantity || 1), 0),
+          item_count: contents.length
+        }
+      };
+    });
+
+    openQRPrintWindow(qrItems);
+  });
+
+})();
+
+
