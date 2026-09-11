@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.7.0
+// @version      2.8.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -2495,7 +2495,7 @@
       else if (status === 'deactivated') { statusBadge = 'sm-badge-skip'; }
 
       let actionBtns = '';
-      if (status === 'collected' || status === 'assigned') {
+      if (status === 'collected' || status === 'active') {
         actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">Bàn giao</button>`;
       }
       if (status === 'collected') {
@@ -2706,6 +2706,7 @@
     const printBtn = document.getElementById('sm-web-btn-print-qr');
     const printText = document.getElementById('sm-web-print-text');
 
+    const selectedForHandover = selectedBoxes.filter(b => b.status === 'collected' || b.status === 'active');
     const selectedCollected = selectedBoxes.filter(b => b.status === 'collected');
     const selectedAssigned = selectedBoxes.filter(b => b.status === 'assigned');
 
@@ -2713,10 +2714,10 @@
       countDisplay.textContent = `Đã chọn: ${selectedCount} / ${totalCount} box`;
     }
     if (handoverText) {
-      handoverText.textContent = `Bàn giao (${selectedCount})`;
+      handoverText.textContent = `Bàn giao (${selectedForHandover.length})`;
     }
     if (handoverBtn) {
-      handoverBtn.disabled = (selectedCount === 0);
+      handoverBtn.disabled = (selectedForHandover.length === 0);
     }
     if (returnText) {
       returnText.textContent = `Trả đồ (${selectedCollected.length})`;
@@ -2831,9 +2832,9 @@
 
   // Batch Handover Button
   document.getElementById('sm-web-btn-handover')?.addEventListener('click', async () => {
-    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && (b.status === 'collected' || b.status === 'active'));
     if (selectedBoxes.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox để Bàn giao!');
+      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "Đang mượn" (collected) để Bàn giao ca!');
       return;
     }
 
