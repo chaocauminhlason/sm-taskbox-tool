@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.5.0
+// @version      2.6.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -680,7 +680,8 @@
         const contents = Object.entries(seen).map(([k, v]) => ({ object_id: k, quantity: v }));
         const norm = removeVietnameseTones(b.lo_name);
         const anchor_id = b.direct_anchor_id || STANDARD_ANCHORS[norm] || '';
-        const title = b.lo_name ? `${b.code}( ${b.lo_name})${stg.name}` : `${b.code}${stg.name}`;
+        const cleanLoName = (b.lo_name || '').trim();
+        const title = cleanLoName ? `${b.code} - ${cleanLoName} - ${stg.name}` : `${b.code} - ${stg.name}`;
 
         parsedBoxes.push({
           module: b.code,
@@ -1358,9 +1359,9 @@
           const mod = tb.module.toUpperCase();
           const st = tb.stage.toUpperCase();
           
-          // Exact module prefix regex (prevents M12 from matching M12-01)
+          // Exact module prefix regex (matches 'M12-01 - ...', 'M12-01( ...', 'M12-01B2')
           const escapedMod = mod.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-          const modRegex = new RegExp(`^${escapedMod}(\\s|\\(|${st}|$)`, 'i');
+          const modRegex = new RegExp(`^${escapedMod}(\\s|\\(|-|_|${st}|$)`, 'i');
           
           return modRegex.test(bt) && bt.endsWith(st) && b.status !== 'deactivated';
         });
