@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.6.0
+// @version      2.7.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -893,9 +893,11 @@
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B2">B2</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B3">B3</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A1">A1</button>
+            </div>
 
-              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; margin-left:10px; min-width:55px;">Module:</span>
-              <div id="sm-web-module-pills-container" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #334155; padding-top:8px;">
+              <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px; flex-shrink:0;">Module:</span>
+              <div id="sm-web-module-pills-container" style="display:flex; align-items:center; gap:6px; overflow-x:auto; max-width:100%; white-space:nowrap; padding-bottom:3px; scrollbar-width:thin;">
                 <button type="button" class="sm-pill-btn sm-web-module-pill sm-pill-active" data-module="all">Tất cả</button>
               </div>
             </div>
@@ -2339,18 +2341,22 @@
     const container = document.getElementById('sm-web-module-pills-container');
     if (!container) return;
 
+    // Extract only Base Modules (e.g. M2, M3, M4, M12, M13...)
     const moduleSet = new Set();
     rawWebBoxesCache.forEach(b => {
       const { mod } = extractModuleAndStage(b.title);
       if (mod && mod !== '-') {
-        // Group by base prefix (e.g. M12, M13) or exact module
-        const base = mod.split('-')[0];
-        moduleSet.add(base);
-        if (mod.includes('-')) moduleSet.add(mod);
+        const base = mod.split(/[-_]/)[0].toUpperCase();
+        if (base) moduleSet.add(base);
       }
     });
 
-    const modules = Array.from(moduleSet).sort();
+    // Natural numerical sorting: M2 -> M3 -> M4 -> M8 -> M9 -> M10 -> M11 -> M12 -> M13 -> M14 -> M15
+    const modules = Array.from(moduleSet).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(b.replace(/\D/g, ''), 10) || 0;
+      return numA - numB;
+    });
 
     container.innerHTML = `
       <button type="button" class="sm-pill-btn sm-web-module-pill ${currentWebModuleFilter === 'all' ? 'sm-pill-active' : ''}" data-module="all">Tất cả</button>
@@ -2410,9 +2416,10 @@
         if (boxStage !== currentWebStageFilter) return false;
       }
 
-      // 1d. Module Filter (M12, M13, etc.)
+      // 1d. Module Filter (M2, M3, M12, M13... matching base prefix)
       if (currentWebModuleFilter !== 'all') {
-        if (boxMod !== currentWebModuleFilter && !boxMod.startsWith(currentWebModuleFilter)) return false;
+        const baseMod = boxMod.split(/[-_]/)[0].toUpperCase();
+        if (baseMod !== currentWebModuleFilter) return false;
       }
 
       // 2. Date Filter
