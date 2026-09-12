@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.10.0
+// @version      2.11.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -821,9 +821,11 @@
               <button type="button" class="sm-pill-btn" id="sm-sel-created" style="background:#312e81; color:#a5b4fc;">Chưa gán</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-assigned" style="background:#0369a1; color:#bae6fd;">Đã gán</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-collected" style="background:#7f1d1d; color:#fecaca;">Đang mượn</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-b1">B1</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-b2">B2</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-b3">B3</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-a1">A1</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-a3">A3</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-none">Bỏ chọn</button>
             </div>
             <div id="sm-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8;">
@@ -921,9 +923,11 @@
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-top:1px solid #334155; padding-top:8px;">
               <span style="font-size:12.5px; font-weight:700; color:#93c5fd; min-width:85px;">Giai đoạn:</span>
               <button type="button" class="sm-pill-btn sm-web-stage-pill sm-pill-active" data-stage="all">Tất cả</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B1">B1</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B2">B2</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B3">B3</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A1">A1</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A3">A3</button>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px; border-top:1px solid #334155; padding-top:8px;">
@@ -950,23 +954,28 @@
               <span style="font-size:13px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:4px;">
                 Bàn giao ca:
               </span>
-              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:160px; padding:4px 10px; font-size:12.5px;" />
-              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú bàn giao (tùy chọn)" style="width:200px; padding:4px 10px; font-size:12.5px;" />
-              <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+              <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:140px; padding:4px 10px; font-size:12.5px;" />
+              <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú bàn giao (tùy chọn)" style="width:160px; padding:4px 10px; font-size:12.5px;" />
+              <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 12px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span id="sm-web-handover-text">Bàn giao (0)</span>
               </button>
             </div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <button type="button" class="sm-btn" id="sm-web-btn-return" style="background:#b91c1c; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+              <input type="text" id="sm-web-assign-input" class="sm-input-control" placeholder="ID Assignee mới" style="width:130px; padding:4px 8px; font-size:12px;" />
+              <button type="button" class="sm-btn" id="sm-web-btn-assign" style="background:#4338ca; color:#e0e7ff; padding:6px 12px; font-size:12.5px;" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                <span id="sm-web-assign-text">Gán / Đổi Assign (0)</span>
+              </button>
+              <button type="button" class="sm-btn" id="sm-web-btn-return" style="background:#b91c1c; color:white; padding:6px 12px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
                 <span id="sm-web-return-text">Trả đồ (0)</span>
               </button>
-              <button type="button" class="sm-btn" id="sm-web-btn-borrow" style="background:#0284c7; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-borrow" style="background:#0284c7; color:white; padding:6px 12px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                 <span id="sm-web-borrow-text">Mượn đồ (0)</span>
               </button>
-              <button type="button" class="sm-btn" id="sm-web-btn-print-qr" style="background:#059669; color:white; padding:6px 14px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-print-qr" style="background:#059669; color:white; padding:6px 12px; font-size:12.5px;" disabled>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
                 <span id="sm-web-print-text">In QR (0)</span>
               </button>
@@ -1112,7 +1121,7 @@
 
     // Count selected boxes eligible for each operation
     const toSync = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP' && r.action !== 'SKIP_COLLECTED');
-    const selectedWithServer = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'created');
+    const selectedWithServer = comparisonResults.filter(r => r.isSelected && r.serverBoxId && (r.serverStatus === 'created' || r.serverStatus === 'assigned'));
     const selectedAssigned = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'assigned');
     const selectedCollected = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'collected');
     const selectedForPrint = comparisonResults.filter(r => r.isSelected && r.serverBoxId);
@@ -1144,7 +1153,7 @@
       syncBtn.disabled = (toSync.length === 0);
     }
     if (assignBtnText) {
-      assignBtnText.textContent = `Gán Assignee (${selectedWithServer.length})`;
+      assignBtnText.textContent = `Gán / Đổi Assignee (${selectedWithServer.length})`;
     }
     if (assignBtn) {
       assignBtn.disabled = (selectedWithServer.length === 0);
@@ -1198,9 +1207,11 @@
   document.getElementById('sm-sel-created')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'created'));
   document.getElementById('sm-sel-assigned')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'assigned'));
   document.getElementById('sm-sel-collected')?.addEventListener('click', () => setRowSelections(item => item && item.serverStatus === 'collected'));
+  document.getElementById('sm-sel-b1')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B1'));
   document.getElementById('sm-sel-b2')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B2'));
   document.getElementById('sm-sel-b3')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B3'));
   document.getElementById('sm-sel-a1')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A1'));
+  document.getElementById('sm-sel-a3')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A3'));
 
   document.getElementById('sm-th-select-all')?.addEventListener('change', (e) => {
     const checked = e.target.checked;
@@ -1470,11 +1481,12 @@
       let lifecycleActionBtn = '';
       if (matchedBoxId) {
         if (serverStatus === 'created') {
-          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Gán</button>`;
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;" title="Gán cho Assignee">Gán</button>`;
         } else if (serverStatus === 'assigned') {
-          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Mượn</button>`;
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:6px; border:none; padding:2px 7px; font-size:11px;" title="Đổi người nhận đã gán">Đổi Gán</button>`;
+          lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-borrow-btn" data-idx="${idx}" style="background:#0284c7; color:#e0f2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Mượn đồ">Mượn</button>`;
         } else if (serverStatus === 'collected') {
-          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;">Trả</button>`;
+          lifecycleActionBtn = `<button type="button" class="sm-pill-btn sm-single-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:6px; border:none; padding:2px 7px; font-size:11px;" title="Trả đồ">Trả</button>`;
         }
         lifecycleActionBtn += `<button type="button" class="sm-pill-btn sm-single-qr-btn" data-idx="${idx}" style="background:#059669; color:#d1fae5; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="In mã QR cho Taskbox này">Mã QR</button>`;
       }
@@ -1495,7 +1507,7 @@
         <td><input type="text" class="sm-anchor-row-input" data-idx="${idx}" value="${tb.anchor_object_id || ''}" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:75px; font-family:monospace; font-size:12px;" /></td>
         <td>${tb.item_count || 0} items</td>
         <td><b>${tb.total_qty || 0}</b></td>
-        <td><code>${assignee}</code></td>
+        <td><input type="text" class="sm-assignee-row-input" data-idx="${idx}" value="${assignee === '-' ? '' : assignee}" placeholder="ID Người nhận" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:90px; font-family:monospace; font-size:12px;" /></td>
         <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span></td>
         <td><span class="sm-badge ${badgeClass}">${actionLabel}</span>${lifecycleActionBtn}</td>
       `;
@@ -1636,6 +1648,16 @@
         const idx = parseInt(inp.getAttribute('data-idx'), 10);
         if (comparisonResults[idx] && comparisonResults[idx].tb) {
           comparisonResults[idx].tb.anchor_object_id = e.target.value.trim();
+        }
+      });
+    });
+
+    // Add change listeners to editable assignee inputs
+    tbody.querySelectorAll('.sm-assignee-row-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(inp.getAttribute('data-idx'), 10);
+        if (comparisonResults[idx]) {
+          comparisonResults[idx].assignee = e.target.value.trim();
         }
       });
     });
@@ -1888,7 +1910,7 @@
   // --- INDEPENDENT ASSIGN EXECUTION LOGIC ---
   document.getElementById('sm-btn-assign-only')?.addEventListener('click', async () => {
     if (!comparisonResults.length) return;
-    const toAssign = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'created');
+    const toAssign = comparisonResults.filter(r => r.isSelected && r.serverBoxId && (r.serverStatus === 'created' || r.serverStatus === 'assigned'));
     if (toAssign.length === 0) {
       alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "created" để gán Assignee!');
       return;
@@ -2707,8 +2729,11 @@
       else if (status === 'deactivated') { statusBadge = 'sm-badge-skip'; }
 
       let actionBtns = '';
+      if (status === 'created' || status === 'assigned') {
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Gán / Chỉnh sửa Assignee">${status === 'created' ? 'Gán' : 'Đổi Gán'}</button>`;
+      }
       if (status === 'collected' || status === 'active') {
-        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">Bàn giao</button>`;
+        actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-handover-btn" data-idx="${idx}" style="background:#2563eb; color:#fff; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Bàn giao ca">Bàn giao</button>`;
       }
       if (status === 'collected') {
         actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-return-btn" data-idx="${idx}" style="background:#b91c1c; color:#fecaca; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Trả đồ">Trả</button>`;
@@ -2749,6 +2774,50 @@
         const idx = parseInt(cb.getAttribute('data-idx'), 10);
         if (filteredWebBoxes[idx]) filteredWebBoxes[idx].isSelected = cb.checked;
         updateWebSelectionSummary();
+      });
+    });
+
+    // Single Assign / Re-assign
+    tbody.querySelectorAll('.sm-web-row-assign-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const b = filteredWebBoxes[idx];
+        if (!b) return;
+
+        let assignee = (document.getElementById('sm-web-assign-input')?.value || '').trim();
+        if (!assignee) {
+          assignee = prompt(`Nhập ID Assignee mới cho box "${b.title}":`, b.assignee || b.current_holder || getLoggedInUser() || '');
+        }
+        if (!assignee) return;
+
+        const boxId = b.id || b.box_id;
+        btn.disabled = true;
+        btn.textContent = '⏳...';
+
+        try {
+          const resp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: 'assigned',
+              assignee: assignee.trim()
+            })
+          });
+          const resData = await resp.json();
+          if (resp.ok) {
+            alert(`✅ Đã gán "${b.title}" cho ${assignee} thành công!`);
+            fetchWebBoxes();
+          } else {
+            alert(`❌ Lỗi khi gán: ${resData.detail || 'Không xác định'}`);
+            btn.disabled = false;
+            btn.textContent = b.status === 'created' ? 'Gán' : 'Đổi Gán';
+          }
+        } catch (err) {
+          alert('Lỗi kết nối: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = b.status === 'created' ? 'Gán' : 'Đổi Gán';
+        }
       });
     });
 
@@ -2920,8 +2989,18 @@
     const printText = document.getElementById('sm-web-print-text');
 
     const selectedForHandover = selectedBoxes.filter(b => b.status === 'collected' || b.status === 'active');
+    const selectedForAssign = selectedBoxes.filter(b => b.status === 'created' || b.status === 'assigned');
     const selectedCollected = selectedBoxes.filter(b => b.status === 'collected');
     const selectedAssigned = selectedBoxes.filter(b => b.status === 'assigned');
+
+    const assignBtn = document.getElementById('sm-web-btn-assign');
+    const assignText = document.getElementById('sm-web-assign-text');
+    if (assignText) {
+      assignText.textContent = `Gán / Đổi Assign (${selectedForAssign.length})`;
+    }
+    if (assignBtn) {
+      assignBtn.disabled = (selectedForAssign.length === 0);
+    }
 
     if (countDisplay) {
       countDisplay.textContent = `Đã chọn: ${selectedCount} / ${totalCount} box`;
@@ -3045,6 +3124,70 @@
   document.getElementById('sm-web-th-select-all')?.addEventListener('change', (e) => {
     const checked = e.target.checked;
     setWebRowSelections(() => checked);
+  });
+
+  // Batch Assign / Re-assign Execution
+  document.getElementById('sm-web-btn-assign')?.addEventListener('click', async () => {
+    const toAssign = filteredWebBoxes.filter(b => b.isSelected && (b.status === 'created' || b.status === 'assigned'));
+    if (toAssign.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "created" hoặc "assigned" để gán!');
+      return;
+    }
+
+    let assignee = (document.getElementById('sm-web-assign-input')?.value || '').trim();
+    if (!assignee) {
+      assignee = prompt(`Nhập ID Assignee mới cho ${toAssign.length} box đã chọn:`, getLoggedInUser() || '');
+    }
+    if (!assignee) return;
+
+    if (!confirm(`Bạn có chắc chắn muốn gán ${toAssign.length} Taskbox đã chọn cho "${assignee}"?`)) return;
+
+    const btnAssign = document.getElementById('sm-web-btn-assign');
+    const pBar = document.getElementById('sm-web-progress');
+    const pFill = document.getElementById('sm-web-progress-fill');
+    const logBox = document.getElementById('sm-web-log-box');
+
+    btnAssign.disabled = true;
+    pBar.style.display = 'block';
+    logBox.style.display = 'block';
+    logBox.innerHTML = '';
+
+    const log = (msg) => {
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logBox.appendChild(line);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    let successCount = 0;
+    for (let i = 0; i < toAssign.length; i++) {
+      const b = toAssign[i];
+      const boxId = b.id || b.box_id;
+      pFill.style.width = `${Math.round(((i + 1) / toAssign.length) * 100)}%`;
+
+      log(`[${i + 1}/${toAssign.length}] Đang gán "${b.title}" cho ${assignee}...`);
+      try {
+        const resp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: 'assigned', assignee: assignee.trim() })
+        });
+        const resData = await resp.json();
+        if (resp.ok) {
+          log(`✅ Gán thành công!`);
+          successCount++;
+        } else {
+          log(`❌ Thất bại: ${resData.detail || 'Lỗi không xác định'}`);
+        }
+      } catch (err) {
+        log(`❌ Lỗi mạng: ${err.message}`);
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    btnAssign.disabled = false;
+    log(`🎉 Hoàn tất gán ${successCount}/${toAssign.length} Taskbox!`);
+    await fetchWebBoxes();
   });
 
   // Batch Handover Button
