@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
 // @namespace    https://sm.config.inc/
-// @version      2.9.0
+// @version      2.10.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Antigravity
 // @match        https://sm.config.inc/*
@@ -15,10 +15,17 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-end
+// @noframes
 // ==/UserScript==
 
 (function () {
   'use strict';
+
+  // Guard: Do not run inside iframes and prevent multiple instances
+  if (typeof window !== 'undefined') {
+    if (window.top !== window.self) return;
+    if (document.getElementById('sm-sync-floating-btn')) return;
+  }
 
   // --- STYLES ---
   const style = document.createElement('style');
@@ -51,13 +58,15 @@
     #sm-sync-modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(15, 23, 42, 0.7);
-      backdrop-filter: blur(4px);
+      background: rgba(15, 23, 42, 0.82);
       z-index: 100000;
       display: none;
       align-items: center;
       justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      transform: translateZ(0);
+      backface-visibility: hidden;
     }
     #sm-sync-modal {
       background: #0f172a;
@@ -70,12 +79,14 @@
       max-height: 96vh;
       border-radius: 16px;
       border: 1px solid #334155;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
       display: flex;
       flex-direction: column;
       overflow: hidden;
       resize: both;
       position: relative;
+      transform: translateZ(0);
+      backface-visibility: hidden;
     }
     #sm-sync-modal::-webkit-resizer {
       background: linear-gradient(135deg, transparent 50%, #3b82f6 50%);
@@ -1740,7 +1751,7 @@
 
   // --- START FRESH & DRAFT RESET HELPER ---
   function triggerStartFresh() {
-    // 1. Clear all taskbox draft keys in localStorage to prevent restoring stale form data
+    // Clear all taskbox draft keys in localStorage to prevent restoring stale form data
     try {
       Object.keys(localStorage).forEach(k => {
         if (k.toLowerCase().includes('taskboxdraft') || k.toLowerCase().includes('draft')) {
@@ -1749,20 +1760,6 @@
       });
     } catch (e) {
       console.warn('Could not clear localStorage drafts:', e);
-    }
-
-    // 2. Click any visible "Start fresh" button/link on Scenario Manager UI modal
-    try {
-      const freshBtns = Array.from(document.querySelectorAll('button, a, span')).filter(el => 
-        el.textContent && el.textContent.trim().toLowerCase().includes('start fresh')
-      );
-      freshBtns.forEach(btn => {
-        if (typeof btn.click === 'function') {
-          btn.click();
-        }
-      });
-    } catch (e) {
-      console.warn('Could not click Start fresh button:', e);
     }
   }
 
@@ -3025,9 +3022,13 @@
     });
   });
 
-  // Search Input
+  // Search Input (Debounced to eliminate flickering during typing)
+  let searchDebounceTimer = null;
   document.getElementById('sm-web-search-input')?.addEventListener('input', () => {
-    filterWebBoxes();
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      filterWebBoxes();
+    }, 150);
   });
 
   // Fetch Button
