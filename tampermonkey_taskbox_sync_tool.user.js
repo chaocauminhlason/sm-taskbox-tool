@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.11.0
+// @version      2.12.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -825,6 +825,7 @@
               <button type="button" class="sm-pill-btn" id="sm-sel-b2">B2</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-b3">B3</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-a1">A1</button>
+              <button type="button" class="sm-pill-btn" id="sm-sel-a2">A2</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-a3">A3</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-none">Bỏ chọn</button>
             </div>
@@ -927,6 +928,7 @@
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B2">B2</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="B3">B3</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A1">A1</button>
+              <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A2">A2</button>
               <button type="button" class="sm-pill-btn sm-web-stage-pill" data-stage="A3">A3</button>
             </div>
 
@@ -1211,6 +1213,7 @@
   document.getElementById('sm-sel-b2')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B2'));
   document.getElementById('sm-sel-b3')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'B3'));
   document.getElementById('sm-sel-a1')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A1'));
+  document.getElementById('sm-sel-a2')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A2'));
   document.getElementById('sm-sel-a3')?.addEventListener('click', () => setRowSelections(item => item && item.tb && item.tb.stage === 'A3'));
 
   document.getElementById('sm-th-select-all')?.addEventListener('change', (e) => {
@@ -1354,6 +1357,28 @@
   });
 
   // --- NATURAL SORT & TAB 1 SORT HELPERS ---
+  function getBoxLocalDateStr(dateVal) {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function formatDateVN(dateVal) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return String(dateVal);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+  }
+
   function naturalCompare(a, b) {
     return String(a ?? '').localeCompare(String(b ?? ''), undefined, { numeric: true, sensitivity: 'base' });
   }
@@ -1693,8 +1718,9 @@
       // Sort newest first
       serverBoxesCache.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
-      // 3. Compare & Populate comparisonResults
+      // 3. Compare & Populate comparisonResults (Matching strictly with boxes created TODAY to prevent overwriting past days' boxes)
       comparisonResults = [];
+      const todayStr = getBoxLocalDateStr(new Date());
 
       for (let i = 0; i < parsedBoxesCache.length; i++) {
         const tb = parsedBoxesCache[i];
@@ -1705,7 +1731,7 @@
           continue;
         }
 
-        // Match server box (Exact Module & Stage Match)
+        // Match server box (Exact Module & Stage Match, created TODAY)
         const matches = serverBoxesCache.filter(b => {
           const bt = (b.title || '').trim().toUpperCase();
           const mod = tb.module.toUpperCase();
@@ -1715,7 +1741,11 @@
           const escapedMod = mod.replace(/[-/\^$*+?.()|[\]{}]/g, '\\$&');
           const modRegex = new RegExp(`^${escapedMod}(\\s|\\(|-|_|${st}|$)`, 'i');
           
-          return modRegex.test(bt) && bt.endsWith(st) && b.status !== 'deactivated';
+          if (!modRegex.test(bt) || !bt.endsWith(st) || b.status === 'deactivated') return false;
+
+          // Date check: Only match boxes created TODAY so we do NOT overwrite historical boxes from past days
+          const boxDateStr = getBoxLocalDateStr(b.created_at);
+          return boxDateStr === todayStr;
         });
 
         const activeMatch = matches.find(b => b.status === 'assigned' || b.status === 'created');
