@@ -16,6 +16,8 @@
 // @grant        GM_getValue
 // @run-at       document-end
 // @noframes
+// @updateURL    https://github.com/chaocauminhlason/sm-taskbox-tool/raw/main/tampermonkey_taskbox_sync_tool.user.js
+// @downloadURL  https://github.com/chaocauminhlason/sm-taskbox-tool/raw/main/tampermonkey_taskbox_sync_tool.user.js
 // ==/UserScript==
 
 (function () {
