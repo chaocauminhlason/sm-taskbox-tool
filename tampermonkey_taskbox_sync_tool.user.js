@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         SM TaskBox Auto-Fill & Sync Tool (Google Sheets -> Scenario Manager)
+// @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
 // @version      2.11.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
-// @author       Antigravity
+// @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
 // @match        http://sm.config.inc/*
 // @connect      docs.google.com
@@ -862,7 +862,7 @@
           <div class="sm-btn-row" style="flex-wrap:wrap;">
             <span style="font-size:11px; color:#64748b; margin-right:auto; display:flex; align-items:center; gap:4px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-              Kéo góc dưới phải để co giãn cửa sổ
+              Dev by chaocauminhlason
             </span>
             <button class="sm-btn sm-btn-secondary" id="sm-btn-preview">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
