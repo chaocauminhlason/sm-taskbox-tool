@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.13.0
+// @version      2.14.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1064,20 +1064,28 @@
   }
 
   const defaultAssignees = {
-    'M12': '2140',
-    'M12-01_B2': '3122',
+    'M10': '3628',
+    'M12': '3122',
     'M13': '3178'
   };
   let savedAssignees = JSON.parse(localStorage.getItem('sm_sync_assignees') || JSON.stringify(defaultAssignees));
+  // Clean up legacy orphan keys
+  if (savedAssignees && savedAssignees['M12-01_B2']) {
+    if (!savedAssignees['M12-01']) savedAssignees['M12-01'] = savedAssignees['M12-01_B2'];
+    delete savedAssignees['M12-01_B2'];
+    localStorage.setItem('sm_sync_assignees', JSON.stringify(savedAssignees));
+  }
 
-  function renderAssigneeInputs(modules = ['M12', 'M13']) {
+  function renderAssigneeInputs(modules = ['M10', 'M12', 'M13']) {
     const container = document.getElementById('sm-assignee-container');
+    if (!container) return;
     container.innerHTML = '';
     
-    // Distinct modules
-    const allKeys = Array.from(new Set([...modules, 'M12-01_B2']));
+    // Distinct modules sorted naturally (e.g. M10-01, M10-02, M12-01, M13-01...)
+    const allKeys = Array.from(new Set(modules.filter(Boolean))).sort(naturalCompare);
     for (const mod of allKeys) {
-      const val = savedAssignees[mod] || (mod.startsWith('M13') ? '3178' : (mod === 'M12-01_B2' ? '3122' : '2140'));
+      const defaultVal = mod.startsWith('M10') ? '3628' : (mod.startsWith('M13') ? '3178' : (mod.startsWith('M12') ? '3122' : ''));
+      const val = savedAssignees[mod] || defaultVal;
       const div = document.createElement('div');
       div.className = 'sm-assignee-item';
       div.innerHTML = `
@@ -1092,17 +1100,16 @@
     }
   }
 
-  renderAssigneeInputs(['M12', 'M13']);
+  renderAssigneeInputs(['M10', 'M12', 'M13']);
 
   function getAssigneeForBox(tb) {
-    if (tb.module === 'M12-01' && tb.stage === 'B2' && savedAssignees['M12-01_B2']) {
-      return savedAssignees['M12-01_B2'];
-    }
     if (savedAssignees[tb.module]) return savedAssignees[tb.module];
     const prefix = tb.module.split('-')[0];
     if (savedAssignees[prefix]) return savedAssignees[prefix];
+    if (tb.module.startsWith('M10')) return '3628';
     if (tb.module.startsWith('M13')) return '3178';
-    return '2140';
+    if (tb.module.startsWith('M12')) return '3122';
+    return '';
   }
 
   // --- SELECTION HELPERS ---
