@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.15.0
+// @version      2.16.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1616,6 +1616,14 @@
         const idx = parseInt(btn.getAttribute('data-idx'), 10);
         const item = comparisonResults[idx];
         if (!item || !item.serverBoxId) return;
+
+        let targetAssignee = (item.assignee && item.assignee !== '-') ? item.assignee.trim() : (getAssigneeForBox(item.tb) || '').trim();
+        if (!targetAssignee) {
+          targetAssignee = prompt(`Nhập ID Assignee cho "${item.tb.title}":`, getLoggedInUser() || '');
+          if (!targetAssignee) return;
+          targetAssignee = targetAssignee.trim();
+          item.assignee = targetAssignee;
+        }
         
         btn.disabled = true;
         btn.textContent = '⏳...';
@@ -1623,14 +1631,14 @@
           const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: 'assigned', assignee: item.assignee })
+            body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
           });
-          alert(`✅ Đã gán "${item.tb.title}" cho ${item.assignee} thành công!`);
+          alert(`✅ Đã gán "${item.tb.title}" cho ${targetAssignee} thành công!`);
           document.getElementById('sm-btn-preview')?.click();
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
-          btn.textContent = 'Gán';
+          btn.textContent = (item.serverStatus === 'assigned') ? 'Đổi Gán' : 'Gán';
         }
       });
     });
@@ -1643,13 +1651,14 @@
         const item = comparisonResults[idx];
         if (!item || !item.serverBoxId) return;
 
+        const borrower = (item.assignee && item.assignee !== '-') ? item.assignee.trim() : (getAssigneeForBox(item.tb) || '').trim();
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
           const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: 'collected', borrower: item.assignee, assignee: item.assignee, note: 'Borrowed via Tool' })
+            body: JSON.stringify({ to: 'collected', borrower: borrower, assignee: borrower, note: 'Borrowed via Tool' })
           });
           alert(`✅ Đã mượn "${item.tb.title}" (collected) thành công!`);
           document.getElementById('sm-btn-preview')?.click();
@@ -1669,13 +1678,14 @@
         const item = comparisonResults[idx];
         if (!item || !item.serverBoxId) return;
 
+        const returnedBy = (item.assignee && item.assignee !== '-') ? item.assignee.trim() : (getAssigneeForBox(item.tb) || '').trim();
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
           const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: 'deactivated', returned_by: item.assignee, note: 'Returned via Tool' })
+            body: JSON.stringify({ to: 'deactivated', returned_by: returnedBy, note: 'Returned via Tool' })
           });
           alert(`✅ Đã trả "${item.tb.title}" (deactivated) thành công!`);
           document.getElementById('sm-btn-preview')?.click();
@@ -1953,19 +1963,13 @@
             contents: tb.contents,
             borrow_now: false
           };
-          const ur = await fetch(`/api/boxes/${encodeURIComponent(serverBoxId)}`, {
+          const ud = await safeFetchJson(`/api/boxes/${encodeURIComponent(serverBoxId)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatePayload)
           });
-          const ud = await ur.json();
-
-          if (ur.ok) {
-            log(`✅ [${tb.module} ${tb.stage}] Cập nhật thành công! (${tb.item_count} items)`);
-            success++;
-          } else {
-            throw new Error(ud.detail || 'Lỗi khi cập nhật box');
-          }
+          log(`✅ [${tb.module} ${tb.stage}] Cập nhật thành công! (${tb.item_count} items)`);
+          success++;
         }
       } catch (e) {
         log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
@@ -1986,7 +1990,7 @@
     if (!comparisonResults.length) return;
     const toAssign = comparisonResults.filter(r => r.isSelected && r.serverBoxId && (r.serverStatus === 'created' || r.serverStatus === 'assigned'));
     if (toAssign.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "created" để gán Assignee!');
+      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "created" hoặc "assigned" để gán Assignee!');
       return;
     }
 
@@ -2024,14 +2028,21 @@
       done++;
       progressFill.style.width = `${(done / toAssign.length) * 100}%`;
 
+      const targetAssignee = (assignee && assignee !== '-') ? assignee.trim() : (getAssigneeForBox(tb) || '').trim();
+      if (!targetAssignee) {
+        log(`❌ [${tb.module} ${tb.stage}] Bỏ qua: Chưa cấu hình ID người nhận!`);
+        failed++;
+        continue;
+      }
+
       try {
-        log(`[${tb.module} ${tb.stage}] Đang gán box ${serverBoxId} cho người lấy ID: ${assignee}...`);
+        log(`[${tb.module} ${tb.stage}] Đang gán box ${serverBoxId} cho người lấy ID: ${targetAssignee}...`);
         await safeFetchJson(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: 'assigned', assignee: assignee })
+          body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
         });
-        log(`✅ [${tb.module} ${tb.stage}] Đã gán thành công cho ${assignee}!`);
+        log(`✅ [${tb.module} ${tb.stage}] Đã gán thành công cho ${targetAssignee}!`);
         success++;
       } catch (e) {
         log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
@@ -2843,11 +2854,10 @@
         const b = filteredWebBoxes[idx];
         if (!b) return;
 
-        let assignee = (document.getElementById('sm-web-assign-input')?.value || '').trim();
-        if (!assignee) {
-          assignee = prompt(`Nhập ID Assignee mới cho box "${b.title}":`, b.assignee || b.current_holder || getLoggedInUser() || '');
-        }
+        const defaultVal = (document.getElementById('sm-web-assign-input')?.value || '').trim() || (b.assignee && b.assignee !== '-' ? b.assignee : (b.current_holder && b.current_holder !== '-' ? b.current_holder : getLoggedInUser() || ''));
+        let assignee = prompt(`Nhập ID Assignee mới cho box "${b.title}":`, defaultVal);
         if (!assignee) return;
+        assignee = assignee.trim();
 
         const boxId = b.id || b.box_id;
         btn.disabled = true;
@@ -2859,15 +2869,15 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               to: 'assigned',
-              assignee: assignee.trim()
+              assignee: assignee
             })
           });
           alert(`✅ Đã gán "${b.title}" cho ${assignee} thành công!`);
-          fetchWebBoxes();
+          await fetchWebBoxes();
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
-          btn.textContent = b.status === 'created' ? 'Gán' : 'Đổi Gán';
+          btn.textContent = (b.status === 'created') ? 'Gán' : 'Đổi Gán';
         }
       });
     });
@@ -2882,7 +2892,7 @@
 
         let receiver = (document.getElementById('sm-web-handover-receiver')?.value || '').trim();
         if (!receiver) {
-          receiver = prompt(`Nhập ID người nhận mới cho "${b.title}":`, b.assignee || '');
+          receiver = prompt(`Nhập ID người nhận mới cho "${b.title}":`, (b.assignee && b.assignee !== '-' ? b.assignee : ''));
           if (!receiver) return;
           receiver = receiver.trim();
         }
@@ -2892,20 +2902,13 @@
         btn.textContent = '⏳...';
         try {
           const boxId = b.id || b.box_id;
-          const r = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
+          const data = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ receiver, note })
           });
-          const data = await r.json();
-          if (r.ok) {
-            alert(`✅ Đã bàn giao "${b.title}" cho ${receiver} thành công!`);
-            await fetchWebBoxes();
-          } else {
-            alert(`❌ Lỗi: ${data.detail || data.error || 'Không thể bàn giao'}`);
-            btn.disabled = false;
-            btn.textContent = 'Bàn giao';
-          }
+          alert(`✅ Đã bàn giao "${b.title}" cho ${receiver} thành công!`);
+          await fetchWebBoxes();
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
@@ -2922,27 +2925,20 @@
         const b = filteredWebBoxes[idx];
         if (!b) return;
         const boxId = b.id || b.box_id;
-        const holder = b.current_holder || b.borrower || b.assignee || '';
+        const holder = (b.current_holder && b.current_holder !== '-') ? b.current_holder : ((b.borrower && b.borrower !== '-') ? b.borrower : (b.assignee || ''));
 
         if (!confirm(`Bạn có chắc muốn TRẢ đồ cho "${b.title}"?`)) return;
 
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
-          const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+          const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ to: 'deactivated', returned_by: holder, note: 'Returned via Tool' })
           });
-          const trData = await trResp.json();
-          if (trResp.ok) {
-            alert(`✅ Đã trả "${b.title}" thành công!`);
-            await fetchWebBoxes();
-          } else {
-            alert(`❌ Lỗi: ${trData.detail || 'Không thể trả đồ'}`);
-            btn.disabled = false;
-            btn.textContent = 'Trả';
-          }
+          alert(`✅ Đã trả "${b.title}" thành công!`);
+          await fetchWebBoxes();
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
@@ -2959,25 +2955,18 @@
         const b = filteredWebBoxes[idx];
         if (!b) return;
         const boxId = b.id || b.box_id;
-        const assignee = b.assignee || b.current_holder || '';
+        const assignee = (b.assignee && b.assignee !== '-') ? b.assignee : (b.current_holder || '');
 
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
-          const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+          const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ to: 'collected', borrower: assignee, assignee: assignee, note: 'Borrowed via Tool' })
           });
-          const trData = await trResp.json();
-          if (trResp.ok) {
-            alert(`✅ Đã mượn "${b.title}" thành công!`);
-            await fetchWebBoxes();
-          } else {
-            alert(`❌ Lỗi: ${trData.detail || 'Không thể mượn đồ'}`);
-            btn.disabled = false;
-            btn.textContent = 'Mượn';
-          }
+          alert(`✅ Đã mượn "${b.title}" thành công!`);
+          await fetchWebBoxes();
         } catch (err) {
           alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
@@ -3292,7 +3281,7 @@
 
       try {
         log(`Đang bàn giao box ${boxId} ("${b.title}")...`);
-        const r = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
+        const data = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/handover`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3300,13 +3289,8 @@
             note: note
           })
         });
-        const data = await r.json();
-        if (r.ok) {
-          log(`✅ Box ${boxId} đã bàn giao thành công cho ${receiver}!`);
-          success++;
-        } else {
-          throw new Error(data.detail || data.error || 'Lỗi bàn giao');
-        }
+        log(`✅ Box ${boxId} đã bàn giao thành công cho ${receiver}!`);
+        success++;
       } catch (e) {
         log(`❌ Box ${boxId} thất bại: ${e.message}`);
         failed++;
@@ -3360,13 +3344,13 @@
 
     for (const b of selectedBoxes) {
       const boxId = b.id || b.box_id;
-      const holder = b.current_holder || b.borrower || b.assignee || '';
+      const holder = (b.current_holder && b.current_holder !== '-') ? b.current_holder : ((b.borrower && b.borrower !== '-') ? b.borrower : (b.assignee || ''));
       done++;
       if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
 
       try {
         log(`Đang trả box ${boxId} ("${b.title}")...`);
-        const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+        const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3375,13 +3359,8 @@
             note: 'Returned via Web Manager'
           })
         });
-        const trData = await trResp.json();
-        if (trResp.ok) {
-          log(`✅ Box ${boxId} đã trả thành công!`);
-          success++;
-        } else {
-          throw new Error(trData.detail || trData.error || 'Lỗi trả đồ');
-        }
+        log(`✅ Box ${boxId} đã trả thành công!`);
+        success++;
       } catch (e) {
         log(`❌ Box ${boxId} thất bại: ${e.message}`);
         failed++;
@@ -3433,13 +3412,13 @@
 
     for (const b of selectedBoxes) {
       const boxId = b.id || b.box_id;
-      const assignee = b.assignee || b.current_holder || '';
+      const assignee = (b.assignee && b.assignee !== '-') ? b.assignee : (b.current_holder || '');
       done++;
       if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
 
       try {
         log(`Đang mượn box ${boxId} ("${b.title}")...`);
-        const trResp = await fetch(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
+        const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3449,13 +3428,8 @@
             note: 'Borrowed via Web Manager'
           })
         });
-        const trData = await trResp.json();
-        if (trResp.ok) {
-          log(`✅ Box ${boxId} đã mượn thành công!`);
-          success++;
-        } else {
-          throw new Error(trData.detail || trData.error || 'Lỗi mượn đồ');
-        }
+        log(`✅ Box ${boxId} đã mượn thành công!`);
+        success++;
       } catch (e) {
         log(`❌ Box ${boxId} thất bại: ${e.message}`);
         failed++;
