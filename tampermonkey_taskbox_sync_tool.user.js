@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.16.0
+// @version      2.16.1
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1418,6 +1418,22 @@
     }
   }
 
+  async function transitionBoxToAssignee(serverBoxId, currentStatus, targetAssignee) {
+    if (currentStatus === 'assigned') {
+      // Scenario Manager backend requires sending box back to 'created' before re-assigning to a new user
+      await safeFetchJson(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: 'created', note: 'Hủy gán để đổi người nhận' })
+      });
+    }
+    return await safeFetchJson(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
+    });
+  }
+
   function getBoxLocalDateStr(dateVal) {
     if (!dateVal) return '';
     const d = new Date(dateVal);
@@ -1628,11 +1644,7 @@
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
-          const trData = await safeFetchJson(`/api/boxes/${encodeURIComponent(item.serverBoxId)}/transition`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
-          });
+          const trData = await transitionBoxToAssignee(item.serverBoxId, item.serverStatus, targetAssignee);
           alert(`✅ Đã gán "${item.tb.title}" cho ${targetAssignee} thành công!`);
           document.getElementById('sm-btn-preview')?.click();
         } catch (err) {
@@ -2037,11 +2049,7 @@
 
       try {
         log(`[${tb.module} ${tb.stage}] Đang gán box ${serverBoxId} cho người lấy ID: ${targetAssignee}...`);
-        await safeFetchJson(`/api/boxes/${encodeURIComponent(serverBoxId)}/transition`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
-        });
+        await transitionBoxToAssignee(serverBoxId, item.serverStatus, targetAssignee);
         log(`✅ [${tb.module} ${tb.stage}] Đã gán thành công cho ${targetAssignee}!`);
         success++;
       } catch (e) {
@@ -2864,14 +2872,7 @@
         btn.textContent = '⏳...';
 
         try {
-          const resData = await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: 'assigned',
-              assignee: assignee
-            })
-          });
+          const resData = await transitionBoxToAssignee(boxId, b.status, assignee);
           alert(`✅ Đã gán "${b.title}" cho ${assignee} thành công!`);
           await fetchWebBoxes();
         } catch (err) {
@@ -3207,11 +3208,7 @@
 
       log(`[${i + 1}/${toAssign.length}] Đang gán "${b.title}" cho ${assignee}...`);
       try {
-        await safeFetchJson(`/api/boxes/${encodeURIComponent(boxId)}/transition`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: 'assigned', assignee: assignee.trim() })
-        });
+        await transitionBoxToAssignee(boxId, b.status, assignee.trim());
         log(`✅ Gán thành công!`);
         successCount++;
       } catch (err) {
