@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.14.0
+// @version      2.15.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -814,7 +814,7 @@
                 <button type="button" class="sm-pill-btn" id="sm-assignee-toggle-btn" style="background:#334155; font-size:11px;">Thu gọn</button>
               </div>
               <label style="font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="checkbox" id="sm-auto-assign-check" style="cursor:pointer;" />
+                <input type="checkbox" id="sm-auto-assign-check" style="cursor:pointer;" checked />
                 <span>Tự động chuyển sang trạng thái <b>"Assigned"</b> sau khi tạo</span>
               </label>
             </div>
@@ -1057,7 +1057,8 @@
 
   const autoAssignCheck = document.getElementById('sm-auto-assign-check');
   if (autoAssignCheck) {
-    autoAssignCheck.checked = (localStorage.getItem('sm_sync_auto_assign') === 'true');
+    const savedAutoAssign = localStorage.getItem('sm_sync_auto_assign');
+    autoAssignCheck.checked = (savedAutoAssign !== null ? savedAutoAssign === 'true' : true);
     autoAssignCheck.addEventListener('change', (e) => {
       localStorage.setItem('sm_sync_auto_assign', e.target.checked);
     });
@@ -1902,7 +1903,9 @@
 
       try {
         if (action === 'CREATE') {
-          const autoAssign = document.getElementById('sm-auto-assign-check')?.checked || false;
+          const autoAssign = document.getElementById('sm-auto-assign-check')?.checked !== false;
+          const targetAssignee = (assignee && assignee !== '-') ? assignee.trim() : (getAssigneeForBox(tb) || '').trim();
+
           log(`[${tb.module} ${tb.stage}] Đang tạo mới "${tb.title}" (${tb.item_count} items)...`);
           const createPayload = {
             title: tb.title,
@@ -1911,32 +1914,35 @@
             contents: tb.contents,
             borrow_now: false
           };
-          if (autoAssign && assignee) {
-            createPayload.borrower = assignee;
-            createPayload.assignee = assignee;
+          if (autoAssign && targetAssignee) {
+            createPayload.borrower = targetAssignee;
+            createPayload.assignee = targetAssignee;
           }
-          const cr = await fetch('/api/boxes', {
+          const cd = await safeFetchJson('/api/boxes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(createPayload)
           });
-          const cd = await cr.json();
-          const newBoxId = cd.box_id || cd.id;
+          const newBoxId = cd.box_id || cd.id || (cd.box && (cd.box.box_id || cd.box.id));
 
           if (newBoxId) {
-            if (autoAssign && assignee) {
-              await fetch(`/api/boxes/${encodeURIComponent(newBoxId)}/transition`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ to: 'assigned', assignee: assignee })
-              });
-              log(`✅ [${tb.module} ${tb.stage}] Tạo & đã Assign cho ${assignee}! (Box ID: ${newBoxId})`);
+            if (autoAssign && targetAssignee) {
+              try {
+                await safeFetchJson(`/api/boxes/${encodeURIComponent(newBoxId)}/transition`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
+                });
+                log(`✅ [${tb.module} ${tb.stage}] Tạo & đã Assign cho "${targetAssignee}"! (Box ID: ${newBoxId})`);
+              } catch (trErr) {
+                log(`⚠️ [${tb.module} ${tb.stage}] Đã tạo Box (${newBoxId}) nhưng gán Assignee thất bại: ${trErr.message}`);
+              }
             } else {
-              log(`✅ [${tb.module} ${tb.stage}] Tạo mới thành công ở trạng thái "created" (Dễ dàng chỉnh sửa tiếp)! (Box ID: ${newBoxId})`);
+              log(`✅ [${tb.module} ${tb.stage}] Tạo mới thành công ở trạng thái "created"! (Box ID: ${newBoxId})`);
             }
             success++;
           } else {
-            throw new Error(cd.detail || 'Không lấy được ID box mới');
+            throw new Error(cd.detail || 'Không lấy được ID box mới từ phản hồi máy chủ');
           }
         } else if (action === 'UPDATE') {
           log(`[${tb.module} ${tb.stage}] Đang cập nhật nội dung box ${serverBoxId}...`);
