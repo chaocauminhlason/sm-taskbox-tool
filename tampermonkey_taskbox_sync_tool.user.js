@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.18.0
+// @version      2.18.1
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -892,23 +892,23 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               Quét dữ liệu
             </button>
-            <button class="sm-btn sm-btn-success" id="sm-btn-sync" disabled>
+            <button class="sm-btn sm-btn-success" id="sm-btn-sync">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               <span id="sm-sync-btn-text">Đồng bộ TaskBox</span>
             </button>
-            <button class="sm-btn" id="sm-btn-assign-only" style="background:#4f46e5; color:white;" disabled>
+            <button class="sm-btn" id="sm-btn-assign-only" style="background:#4f46e5; color:white;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               <span id="sm-assign-btn-text">Gán người nhận (0)</span>
             </button>
-            <button class="sm-btn" id="sm-btn-borrow-only" style="background:#0284c7; color:white;" disabled>
+            <button class="sm-btn" id="sm-btn-borrow-only" style="background:#0284c7; color:white;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
               <span id="sm-borrow-btn-text">Mượn đồ (0)</span>
             </button>
-            <button class="sm-btn" id="sm-btn-return-only" style="background:#b91c1c; color:white;" disabled>
+            <button class="sm-btn" id="sm-btn-return-only" style="background:#b91c1c; color:white;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
               <span id="sm-return-btn-text">Trả đồ (0)</span>
             </button>
-            <button class="sm-btn" id="sm-btn-print-qr" style="background:#059669; color:white;" disabled>
+            <button class="sm-btn" id="sm-btn-print-qr" style="background:#059669; color:white;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
               <span id="sm-print-btn-text">In Mã QR (0)</span>
             </button>
@@ -986,26 +986,26 @@
               </span>
               <input type="text" id="sm-web-handover-receiver" class="sm-input-control" placeholder="ID người nhận mới" style="width:140px; padding:4px 10px; font-size:12.5px;" />
               <input type="text" id="sm-web-handover-note" class="sm-input-control" placeholder="Ghi chú bàn giao (tùy chọn)" style="width:160px; padding:4px 10px; font-size:12.5px;" />
-              <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 12px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-handover" style="background:#2563eb; color:white; padding:6px 12px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span id="sm-web-handover-text">Bàn giao (0)</span>
               </button>
             </div>
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <input type="text" id="sm-web-assign-input" class="sm-input-control" placeholder="ID Assignee mới" style="width:130px; padding:4px 8px; font-size:12px;" />
-              <button type="button" class="sm-btn" id="sm-web-btn-assign" style="background:#4338ca; color:#e0e7ff; padding:6px 12px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-assign" style="background:#4338ca; color:#e0e7ff; padding:6px 12px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
                 <span id="sm-web-assign-text">Gán / Đổi Assign (0)</span>
               </button>
-              <button type="button" class="sm-btn" id="sm-web-btn-return" style="background:#b91c1c; color:white; padding:6px 12px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-return" style="background:#b91c1c; color:white; padding:6px 12px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
                 <span id="sm-web-return-text">Trả đồ (0)</span>
               </button>
-              <button type="button" class="sm-btn" id="sm-web-btn-borrow" style="background:#0284c7; color:white; padding:6px 12px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-borrow" style="background:#0284c7; color:white; padding:6px 12px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                 <span id="sm-web-borrow-text">Mượn đồ (0)</span>
               </button>
-              <button type="button" class="sm-btn" id="sm-web-btn-print-qr" style="background:#059669; color:white; padding:6px 12px; font-size:12.5px;" disabled>
+              <button type="button" class="sm-btn" id="sm-web-btn-print-qr" style="background:#059669; color:white; padding:6px 12px; font-size:12.5px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
                 <span id="sm-web-print-text">In QR (0)</span>
               </button>
@@ -1188,31 +1188,31 @@
       syncBtnText.textContent = toSync.length > 0 ? `Đồng bộ (${toSync.length})` : `Đồng bộ Đồ`;
     }
     if (syncBtn) {
-      syncBtn.disabled = (toSync.length === 0);
+      syncBtn.style.opacity = toSync.length > 0 ? '1' : '0.9';
     }
     if (assignBtnText) {
       assignBtnText.textContent = `Gán / Đổi Assignee (${selectedWithServer.length})`;
     }
     if (assignBtn) {
-      assignBtn.disabled = (selectedWithServer.length === 0);
+      assignBtn.style.opacity = selectedWithServer.length > 0 ? '1' : '0.9';
     }
     if (borrowBtnText) {
       borrowBtnText.textContent = `Mượn đồ (${selectedAssigned.length})`;
     }
     if (borrowBtn) {
-      borrowBtn.disabled = (selectedAssigned.length === 0);
+      borrowBtn.style.opacity = selectedAssigned.length > 0 ? '1' : '0.9';
     }
     if (returnBtnText) {
       returnBtnText.textContent = `Trả đồ (${selectedCollected.length})`;
     }
     if (returnBtn) {
-      returnBtn.disabled = (selectedCollected.length === 0);
+      returnBtn.style.opacity = selectedCollected.length > 0 ? '1' : '0.9';
     }
     if (printBtnText) {
       printBtnText.textContent = `In Mã QR (${selectedForPrint.length})`;
     }
     if (printBtn) {
-      printBtn.disabled = (selectedForPrint.length === 0);
+      printBtn.style.opacity = selectedForPrint.length > 0 ? '1' : '0.9';
     }
 
     const thSelectAll = document.getElementById('sm-th-select-all');
@@ -1719,7 +1719,13 @@
         const item = comparisonResults[idx];
         if (!item || !item.serverBoxId) return;
 
-        const borrower = (item.assignee && item.assignee !== '-') ? item.assignee.trim() : (getAssigneeForBox(item.tb) || '').trim();
+        let borrower = (item.assignee && item.assignee !== '-') ? item.assignee.trim() : (getAssigneeForBox(item.tb) || '').trim();
+        if (!borrower) {
+          borrower = prompt(`Nhập ID người mượn cho "${item.tb.title}":`, getLoggedInUser() || '');
+          if (!borrower) return;
+          borrower = borrower.trim();
+        }
+
         btn.disabled = true;
         btn.textContent = '⏳...';
         try {
@@ -1731,9 +1737,12 @@
           alert(`✅ Đã mượn "${item.tb.title}" (collected) thành công!`);
           document.getElementById('sm-btn-preview')?.click();
         } catch (err) {
-          alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
           btn.textContent = 'Mượn';
+          const openEdit = confirm(`❌ Mượn thất bại cho "${item.tb.title}":\n${err.message}\n\n👉 Bạn có muốn mở trang chi tiết TaskBox trên Scenario Manager để kiểm tra và sửa lại số lượng không?`);
+          if (openEdit) {
+            window.open(`/boxes/${encodeURIComponent(item.serverBoxId)}`, '_blank');
+          }
         }
       });
     });
@@ -1933,13 +1942,22 @@
   }
 
   // --- SYNC EXECUTION LOGIC (CREATE & UPDATE) ---
-  document.getElementById('sm-btn-sync').addEventListener('click', async () => {
-    if (!comparisonResults.length) return;
+  document.getElementById('sm-btn-sync')?.addEventListener('click', async () => {
+    if (!comparisonResults.length) {
+      alert('⚠️ Chưa có dữ liệu bảng đối chiếu.\n\n👉 Vui lòng dán Link Google Sheet và bấm "Quét dữ liệu" trước!');
+      return;
+    }
 
-    // Filter only boxes that are checked by user
-    const toSync = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP' && r.action !== 'SKIP_COLLECTED');
+    const selectedBoxes = comparisonResults.filter(r => r.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn Taskbox nào để đồng bộ!\n\n👉 Vui lòng tích chọn các ô vuông đầu dòng (hoặc bấm nút "Cần xử lý" ở bộ lọc nhanh).');
+      return;
+    }
+
+    // Filter only boxes that need sync (CREATE / UPDATE)
+    const toSync = selectedBoxes.filter(r => r.action !== 'SKIP' && r.action !== 'SKIP_COLLECTED');
     if (toSync.length === 0) {
-      alert('Chưa có taskbox nào được chọn hoặc các box được chọn không thể đồng bộ!');
+      alert('⚠️ Các Taskbox bạn đã chọn đều đã khớp 100% hoặc đang mượn (không có thay đổi cần tạo mới hay cập nhật)!');
       return;
     }
 
@@ -1954,8 +1972,8 @@
     const progressFill = document.getElementById('sm-progress-fill');
     const logBox = document.getElementById('sm-log-box');
 
-    btnSync.disabled = true;
-    btnPreview.disabled = true;
+    if (btnSync) btnSync.disabled = true;
+    if (btnPreview) btnPreview.disabled = true;
     progressBar.style.display = 'block';
     logBox.style.display = 'block';
     logBox.innerHTML = '';
@@ -2049,16 +2067,27 @@
     }
 
     log(`🎉 HOÀN TẤT ĐỒNG BỘ: ${success} thành công, ${failed} lỗi.`);
-    btnPreview.disabled = false;
-    btnPreview.click(); // Re-audit to update table
+    if (btnSync) btnSync.disabled = false;
+    if (btnPreview) btnPreview.disabled = false;
+    btnPreview?.click(); // Re-audit to update table
   });
 
   // --- INDEPENDENT ASSIGN EXECUTION LOGIC ---
   document.getElementById('sm-btn-assign-only')?.addEventListener('click', async () => {
-    if (!comparisonResults.length) return;
-    const toAssign = comparisonResults.filter(r => r.isSelected && r.serverBoxId && (r.serverStatus === 'created' || r.serverStatus === 'assigned'));
+    if (!comparisonResults.length) {
+      alert('⚠️ Chưa có dữ liệu bảng đối chiếu.\n\n👉 Vui lòng dán Link Google Sheet và bấm "Quét dữ liệu" trước!');
+      return;
+    }
+
+    const selectedBoxes = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP');
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn Taskbox nào!\n\n👉 Vui lòng tích chọn các ô vuông đầu dòng (hoặc bấm nút "Chưa gán") trước khi bấm Gán người nhận.');
+      return;
+    }
+
+    const toAssign = selectedBoxes.filter(r => r.serverBoxId && (r.serverStatus === 'created' || r.serverStatus === 'assigned'));
     if (toAssign.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "created" hoặc "assigned" để gán Assignee!');
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} Taskbox, nhưng các box này chưa tồn tại trên hệ thống hoặc đang ở trạng thái khác!\n\n👉 Hãy bấm "Đồng bộ TaskBox" để tạo box trước khi gán.`);
       return;
     }
 
@@ -2116,16 +2145,27 @@
     }
 
     log(`🎉 HOÀN TẤT GÁN ASSIGNEE: ${success} thành công, ${failed} lỗi.`);
+    if (btnAssign) btnAssign.disabled = false;
     if (btnPreview) btnPreview.disabled = false;
     btnPreview?.click(); // Re-audit to update table
   });
 
   // --- INDEPENDENT BORROW EXECUTION LOGIC (MƯỢN ĐỒ -> COLLECTED) ---
   document.getElementById('sm-btn-borrow-only')?.addEventListener('click', async () => {
-    if (!comparisonResults.length) return;
-    const toBorrow = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'assigned');
+    if (!comparisonResults.length) {
+      alert('⚠️ Chưa có dữ liệu bảng đối chiếu.\n\n👉 Vui lòng dán Link Google Sheet và bấm "Quét dữ liệu" trước!');
+      return;
+    }
+
+    const selectedBoxes = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP');
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn Taskbox nào!\n\n👉 Vui lòng tích chọn các ô vuông đầu dòng (hoặc bấm nút "Đã gán" ở bộ lọc nhanh) trước khi bấm Mượn đồ.');
+      return;
+    }
+
+    const toBorrow = selectedBoxes.filter(r => r.serverBoxId && r.serverStatus === 'assigned');
     if (toBorrow.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "assigned" để Mượn đồ!');
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} Taskbox, nhưng không có box nào ở trạng thái "assigned" (Đã gán)!\n\n👉 Nút Mượn đồ chỉ áp dụng cho TaskBox đã gán. Hãy gán người nhận trước (hoặc bấm nút "Đã gán" ở bộ lọc nhanh).`);
       return;
     }
 
@@ -2206,10 +2246,20 @@
 
   // --- INDEPENDENT RETURN EXECUTION LOGIC (TRẢ ĐỒ -> DEACTIVATED) ---
   document.getElementById('sm-btn-return-only')?.addEventListener('click', async () => {
-    if (!comparisonResults.length) return;
-    const toReturn = comparisonResults.filter(r => r.isSelected && r.serverBoxId && r.serverStatus === 'collected');
+    if (!comparisonResults.length) {
+      alert('⚠️ Chưa có dữ liệu bảng đối chiếu.\n\n👉 Vui lòng dán Link Google Sheet và bấm "Quét dữ liệu" trước!');
+      return;
+    }
+
+    const selectedBoxes = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP');
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn Taskbox nào!\n\n👉 Vui lòng tích chọn các Taskbox đang mượn (hoặc bấm nút "Đang mượn" ở bộ lọc nhanh) để Trả đồ.');
+      return;
+    }
+
+    const toReturn = selectedBoxes.filter(r => r.serverBoxId && r.serverStatus === 'collected');
     if (toReturn.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 Taskbox ở trạng thái "collected" để Trả đồ!');
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} Taskbox, nhưng không có box nào ở trạng thái "collected" (Đang mượn)!\n\n👉 Thao tác Trả đồ chỉ áp dụng cho Taskbox đang mượn.`);
       return;
     }
 
@@ -2552,10 +2602,18 @@
 
   // --- BATCH QR PRINT BUTTON LISTENER ---
   document.getElementById('sm-btn-print-qr')?.addEventListener('click', () => {
-    if (!comparisonResults.length) return;
-    const toPrint = comparisonResults.filter(r => r.isSelected && r.serverBoxId);
+    if (!comparisonResults.length) {
+      alert('⚠️ Chưa có dữ liệu bảng đối chiếu.\n\n👉 Vui lòng dán Link Google Sheet và bấm "Quét dữ liệu" trước!');
+      return;
+    }
+    const selectedBoxes = comparisonResults.filter(r => r.isSelected && r.action !== 'SKIP');
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn Taskbox nào!\n\n👉 Vui lòng tích chọn ít nhất 1 Taskbox đã có trên hệ thống để in mã QR.');
+      return;
+    }
+    const toPrint = selectedBoxes.filter(r => r.serverBoxId);
     if (toPrint.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 Taskbox đã có trên hệ thống để in mã QR!');
+      alert('⚠️ Các Taskbox đã chọn chưa tồn tại trên hệ thống (chưa có ID Server)!\n\n👉 Vui lòng bấm "Đồng bộ TaskBox" để tạo mã trên hệ thống trước khi in QR.');
       return;
     }
     openQRPrintWindow(toPrint);
@@ -3123,7 +3181,7 @@
       assignText.textContent = `Gán / Đổi Assign (${selectedForAssign.length})`;
     }
     if (assignBtn) {
-      assignBtn.disabled = (selectedForAssign.length === 0);
+      assignBtn.style.opacity = selectedForAssign.length > 0 ? '1' : '0.9';
     }
 
     if (countDisplay) {
@@ -3133,25 +3191,25 @@
       handoverText.textContent = `Bàn giao (${selectedForHandover.length})`;
     }
     if (handoverBtn) {
-      handoverBtn.disabled = (selectedForHandover.length === 0);
+      handoverBtn.style.opacity = selectedForHandover.length > 0 ? '1' : '0.9';
     }
     if (returnText) {
       returnText.textContent = `Trả đồ (${selectedCollected.length})`;
     }
     if (returnBtn) {
-      returnBtn.disabled = (selectedCollected.length === 0);
+      returnBtn.style.opacity = selectedCollected.length > 0 ? '1' : '0.9';
     }
     if (borrowText) {
       borrowText.textContent = `Mượn đồ (${selectedAssigned.length})`;
     }
     if (borrowBtn) {
-      borrowBtn.disabled = (selectedAssigned.length === 0);
+      borrowBtn.style.opacity = selectedAssigned.length > 0 ? '1' : '0.9';
     }
     if (printText) {
       printText.textContent = `In QR (${selectedCount})`;
     }
     if (printBtn) {
-      printBtn.disabled = (selectedCount === 0);
+      printBtn.style.opacity = selectedCount > 0 ? '1' : '0.9';
     }
 
     const thSelectAll = document.getElementById('sm-web-th-select-all');
@@ -3302,9 +3360,20 @@
 
   // Batch Assign / Re-assign Execution
   document.getElementById('sm-web-btn-assign')?.addEventListener('click', async () => {
-    const toAssign = filteredWebBoxes.filter(b => b.isSelected && (b.status === 'created' || b.status === 'assigned'));
+    if (!rawWebBoxesCache.length) {
+      alert('⚠️ Chưa có dữ liệu TaskBox từ Web.\n\n👉 Vui lòng bấm "Quét dữ liệu Web" trước!');
+      return;
+    }
+
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn TaskBox nào!\n\n👉 Vui lòng tích chọn các ô vuông đầu dòng để chọn các box cần Gán / Đổi Assignee.');
+      return;
+    }
+
+    const toAssign = selectedBoxes.filter(b => b.status === 'created' || b.status === 'assigned');
     if (toAssign.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "created" hoặc "assigned" để gán!');
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} TaskBox, nhưng không có box nào ở trạng thái "created" hoặc "assigned" (Đã gán)!`);
       return;
     }
 
@@ -3321,10 +3390,12 @@
     const pFill = document.getElementById('sm-web-progress-fill');
     const logBox = document.getElementById('sm-web-log-box');
 
-    btnAssign.disabled = true;
-    pBar.style.display = 'block';
-    logBox.style.display = 'block';
-    logBox.innerHTML = '';
+    if (btnAssign) btnAssign.disabled = true;
+    if (pBar) pBar.style.display = 'block';
+    if (logBox) {
+      logBox.style.display = 'block';
+      logBox.innerHTML = '';
+    }
 
     const log = (msg) => {
       const line = document.createElement('div');
@@ -3337,7 +3408,7 @@
     for (let i = 0; i < toAssign.length; i++) {
       const b = toAssign[i];
       const boxId = b.id || b.box_id;
-      pFill.style.width = `${Math.round(((i + 1) / toAssign.length) * 100)}%`;
+      if (pFill) pFill.style.width = `${Math.round(((i + 1) / toAssign.length) * 100)}%`;
 
       log(`[${i + 1}/${toAssign.length}] Đang gán "${b.title}" cho ${assignee}...`);
       try {
@@ -3350,22 +3421,33 @@
       await new Promise(r => setTimeout(r, 100));
     }
 
-    btnAssign.disabled = false;
+    if (btnAssign) btnAssign.disabled = false;
     log(`🎉 Hoàn tất gán ${successCount}/${toAssign.length} Taskbox!`);
     await fetchWebBoxes();
   });
 
   // Batch Handover Button
   document.getElementById('sm-web-btn-handover')?.addEventListener('click', async () => {
-    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && (b.status === 'collected' || b.status === 'active'));
+    if (!rawWebBoxesCache.length) {
+      alert('⚠️ Chưa có dữ liệu TaskBox từ Web.\n\n👉 Vui lòng bấm "Quét dữ liệu Web" trước!');
+      return;
+    }
+
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
     if (selectedBoxes.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "Đang mượn" (collected) để Bàn giao ca!');
+      alert('⚠️ Bạn chưa chọn TaskBox nào!\n\n👉 Vui lòng tích chọn các TaskBox đang mượn (hoặc bấm nút "Chỉ Đang mượn") để Bàn giao ca.');
+      return;
+    }
+
+    const eligibleBoxes = selectedBoxes.filter(b => b.status === 'collected' || b.status === 'active');
+    if (eligibleBoxes.length === 0) {
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} TaskBox, nhưng không có box nào ở trạng thái "Đang mượn" (collected)!\n\n👉 Thao tác Bàn giao ca chỉ áp dụng cho TaskBox đang mượn.`);
       return;
     }
 
     let receiver = (document.getElementById('sm-web-handover-receiver')?.value || '').trim();
     if (!receiver) {
-      receiver = prompt(`Nhập ID người nhận mới cho ${selectedBoxes.length} TaskBox đã chọn:`);
+      receiver = prompt(`Nhập ID người nhận mới cho ${eligibleBoxes.length} TaskBox đã chọn:`);
       if (!receiver) return;
       receiver = receiver.trim();
       if (document.getElementById('sm-web-handover-receiver')) {
@@ -3375,7 +3457,7 @@
 
     const note = (document.getElementById('sm-web-handover-note')?.value || '').trim() || 'Bàn giao ca qua Tool';
 
-    if (!confirm(`Bạn có chắc chắn muốn BÀN GIAO ${selectedBoxes.length} TaskBox đã chọn cho người nhận ID: "${receiver}"?`)) return;
+    if (!confirm(`Bạn có chắc chắn muốn BÀN GIAO ${eligibleBoxes.length} TaskBox đã chọn cho người nhận ID: "${receiver}"?`)) return;
 
     const btnHandover = document.getElementById('sm-web-btn-handover');
     const btnReturn = document.getElementById('sm-web-btn-return');
@@ -3399,15 +3481,15 @@
       logBox.scrollTop = logBox.scrollHeight;
     };
 
-    log(`🤝 Bắt đầu bàn giao ${selectedBoxes.length} TaskBox cho ${receiver}...`);
+    log(`🤝 Bắt đầu bàn giao ${eligibleBoxes.length} TaskBox cho ${receiver}...`);
     let done = 0;
     let success = 0;
     let failed = 0;
 
-    for (const b of selectedBoxes) {
+    for (const b of eligibleBoxes) {
       const boxId = b.id || b.box_id;
       done++;
-      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+      if (progressFill) progressFill.style.width = `${(done / eligibleBoxes.length) * 100}%`;
 
       try {
         log(`Đang bàn giao box ${boxId} ("${b.title}")...`);
@@ -3437,13 +3519,24 @@
 
   // Batch Return Button
   document.getElementById('sm-web-btn-return')?.addEventListener('click', async () => {
-    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && b.status === 'collected');
-    if (selectedBoxes.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "collected" (Đang mượn) để Trả đồ!');
+    if (!rawWebBoxesCache.length) {
+      alert('⚠️ Chưa có dữ liệu TaskBox từ Web.\n\n👉 Vui lòng bấm "Quét dữ liệu Web" trước!');
       return;
     }
 
-    if (!confirm(`Bạn có chắc chắn muốn TRẢ ${selectedBoxes.length} TaskBox đã chọn?`)) return;
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn TaskBox nào!\n\n👉 Vui lòng tích chọn các TaskBox đang mượn (hoặc bấm nút "Chỉ Đang mượn") để Trả đồ.');
+      return;
+    }
+
+    const eligibleBoxes = selectedBoxes.filter(b => b.status === 'collected');
+    if (eligibleBoxes.length === 0) {
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} TaskBox, nhưng không có box nào ở trạng thái "collected" (Đang mượn)!\n\n👉 Thao tác Trả đồ chỉ áp dụng cho TaskBox đang mượn.`);
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn TRẢ ${eligibleBoxes.length} TaskBox đã chọn?`)) return;
 
     const btnHandover = document.getElementById('sm-web-btn-handover');
     const btnReturn = document.getElementById('sm-web-btn-return');
@@ -3467,16 +3560,16 @@
       logBox.scrollTop = logBox.scrollHeight;
     };
 
-    log(`↩️ Bắt đầu TRẢ ĐỒ (deactivated) cho ${selectedBoxes.length} TaskBox...`);
+    log(`↩️ Bắt đầu TRẢ ĐỒ (deactivated) cho ${eligibleBoxes.length} TaskBox...`);
     let done = 0;
     let success = 0;
     let failed = 0;
 
-    for (const b of selectedBoxes) {
+    for (const b of eligibleBoxes) {
       const boxId = b.id || b.box_id;
       const holder = (b.current_holder && b.current_holder !== '-') ? b.current_holder : ((b.borrower && b.borrower !== '-') ? b.borrower : (b.assignee || ''));
       done++;
-      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+      if (progressFill) progressFill.style.width = `${(done / eligibleBoxes.length) * 100}%`;
 
       try {
         log(`Đang trả box ${boxId} ("${b.title}")...`);
@@ -3507,13 +3600,24 @@
 
   // Batch Borrow Button
   document.getElementById('sm-web-btn-borrow')?.addEventListener('click', async () => {
-    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected && b.status === 'assigned');
-    if (selectedBoxes.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox ở trạng thái "assigned" (Đã gán) để Mượn đồ!');
+    if (!rawWebBoxesCache.length) {
+      alert('⚠️ Chưa có dữ liệu TaskBox từ Web.\n\n👉 Vui lòng bấm "Quét dữ liệu Web" trước!');
       return;
     }
 
-    if (!confirm(`Bạn có chắc chắn muốn MƯỢN ${selectedBoxes.length} TaskBox đã chọn?`)) return;
+    const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
+    if (selectedBoxes.length === 0) {
+      alert('⚠️ Bạn chưa chọn TaskBox nào!\n\n👉 Vui lòng tích chọn các ô vuông đầu dòng (hoặc bấm nút "Chỉ Đã gán" ở thanh chọn nhanh) để mượn đồ.');
+      return;
+    }
+
+    const eligibleBoxes = selectedBoxes.filter(b => b.status === 'assigned');
+    if (eligibleBoxes.length === 0) {
+      alert(`⚠️ Bạn đã chọn ${selectedBoxes.length} TaskBox, nhưng không có box nào ở trạng thái "assigned" (Đã gán)!\n\n👉 Nút Mượn đồ chỉ áp dụng cho TaskBox đã gán. Hãy gán người nhận trước (hoặc bấm nút "Chỉ Đã gán").`);
+      return;
+    }
+
+    if (!confirm(`Bạn có chắc chắn muốn MƯỢN ${eligibleBoxes.length} TaskBox đã chọn?`)) return;
 
     const btnBorrow = document.getElementById('sm-web-btn-borrow');
     const progressBar = document.getElementById('sm-web-progress');
@@ -3550,16 +3654,17 @@
       logBox.scrollTop = logBox.scrollHeight;
     };
 
-    log(`📦 Bắt đầu MƯỢN ĐỒ (collected) cho ${selectedBoxes.length} TaskBox...`);
+    log(`📦 Bắt đầu MƯỢN ĐỒ (collected) cho ${eligibleBoxes.length} TaskBox...`);
     let done = 0;
     let success = 0;
     let failed = 0;
 
-    for (const b of selectedBoxes) {
+    for (const b of eligibleBoxes) {
       const boxId = b.id || b.box_id;
-      const assignee = (b.assignee && b.assignee !== '-') ? b.assignee : (b.current_holder || '');
+      let assignee = (b.assignee && b.assignee !== '-') ? b.assignee : (b.current_holder || '');
+      if (!assignee) assignee = getLoggedInUser() || '';
       done++;
-      if (progressFill) progressFill.style.width = `${(done / selectedBoxes.length) * 100}%`;
+      if (progressFill) progressFill.style.width = `${(done / eligibleBoxes.length) * 100}%`;
 
       try {
         log(`Đang mượn box ${boxId} ("${b.title}")...`);
@@ -3590,9 +3695,14 @@
 
   // Batch Print QR Button
   document.getElementById('sm-web-btn-print-qr')?.addEventListener('click', () => {
+    if (!rawWebBoxesCache.length) {
+      alert('⚠️ Chưa có dữ liệu TaskBox từ Web.\n\n👉 Vui lòng bấm "Quét dữ liệu Web" trước!');
+      return;
+    }
+
     const selectedBoxes = filteredWebBoxes.filter(b => b.isSelected);
     if (selectedBoxes.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 TaskBox để in mã QR!');
+      alert('⚠️ Bạn chưa chọn TaskBox nào!\n\n👉 Vui lòng tích chọn ít nhất 1 TaskBox để in mã QR.');
       return;
     }
 
