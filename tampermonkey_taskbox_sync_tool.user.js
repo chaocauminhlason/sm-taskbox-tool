@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.18.1
+// @version      2.18.2
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1447,6 +1447,36 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to: 'assigned', assignee: targetAssignee })
     });
+  }
+
+  function checkStockShortage(contents = []) {
+    if (!Array.isArray(contents) || contents.length === 0) {
+      return { hasShortage: false, shortageList: [], summaryText: '' };
+    }
+    const shortageList = [];
+    contents.forEach(item => {
+      const needed = Number(item.quantity || 1);
+      const available = (typeof item.available === 'number') ? item.available : 999;
+      if (available < needed) {
+        const name = item.name_vi || item.name || `Object #${item.object_id || ''}`;
+        const loc = item.whereabouts || (item.sector ? `${item.sector} ${item.location || ''}` : '') || 'Kho';
+        shortageList.push({
+          objectId: item.object_id,
+          name,
+          needed,
+          available,
+          shortage: needed - available,
+          whereabouts: loc
+        });
+      }
+    });
+
+    const summaryText = shortageList.map(s => `• ${s.name}: Cần ${s.needed}, Kho còn ${s.available} (tại ${s.whereabouts})`).join('\n');
+    return {
+      hasShortage: shortageList.length > 0,
+      shortageList,
+      summaryText
+    };
   }
 
   function getBoxLocalDateStr(dateVal) {
