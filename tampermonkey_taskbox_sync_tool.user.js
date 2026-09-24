@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.16.1
+// @version      2.18.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -842,8 +842,18 @@
               <button type="button" class="sm-pill-btn" id="sm-sel-a3">A3</button>
               <button type="button" class="sm-pill-btn" id="sm-sel-none">Bỏ chọn</button>
             </div>
-            <div id="sm-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8;">
-              Đã chọn: 0 box
+            <div style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:5px;">
+                <input type="text" id="sm-sheet-search-input" class="sm-input-control" placeholder="Tìm Module, Tên box, Anchor, Assignee..." style="padding:4px 8px; font-size:12px; width:210px; height:28px;" />
+                <button type="button" class="sm-btn sm-btn-secondary" id="sm-sheet-btn-search" style="padding:4px 10px; height:28px; font-size:12px; display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  Tìm
+                </button>
+                <button type="button" class="sm-pill-btn" id="sm-sheet-btn-search-clear" style="display:none; padding:3px 8px; font-size:11px; background:#475569; color:#f1f5f9; flex-shrink:0;" title="Xóa tìm kiếm">✕</button>
+              </div>
+              <div id="sm-selection-count" style="font-size:13px; font-weight:600; color:#38bdf8; white-space:nowrap;">
+                Đã chọn: 0 box
+              </div>
             </div>
           </div>
 
@@ -957,8 +967,13 @@
               <button type="button" class="sm-pill-btn sm-web-user-pill sm-pill-active" data-user="all">Tất cả người dùng</button>
               <button type="button" class="sm-pill-btn sm-web-user-pill" data-user="me" style="background:#065f46; color:#a7f3d0;" id="sm-web-user-me-btn">Chỉ của tôi</button>
 
-              <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:340px;">
+              <div style="display:flex; align-items:center; gap:6px; margin-left:auto; flex:1; max-width:380px;">
                 <input type="text" id="sm-web-search-input" class="sm-input-control" placeholder="Tìm theo Module, Tên box, Người giữ, Anchor..." style="padding:4px 10px; font-size:12px; width:100%; height:28px;" />
+                <button type="button" class="sm-btn sm-btn-secondary" id="sm-web-btn-search" style="padding:4px 10px; height:28px; font-size:12px; display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  Tìm
+                </button>
+                <button type="button" class="sm-pill-btn" id="sm-web-btn-search-clear" style="display:none; padding:3px 8px; font-size:11px; background:#475569; color:#f1f5f9; flex-shrink:0;" title="Xóa tìm kiếm">✕</button>
               </div>
             </div>
           </div>
@@ -1511,6 +1526,8 @@
     });
   }
 
+  let currentTab1SearchTerm = '';
+
   function handleTab1Sort(sortKey) {
     if (!comparisonResults || comparisonResults.length === 0) return;
     if (currentTab1SortKey === sortKey) {
@@ -1528,6 +1545,10 @@
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    const searchTerm = (currentTab1SearchTerm || '').toLowerCase().trim();
+    const clearBtn = document.getElementById('sm-sheet-btn-search-clear');
+    if (clearBtn) clearBtn.style.display = searchTerm ? 'inline-block' : 'none';
+
     if (!comparisonResults || comparisonResults.length === 0) {
       tbody.innerHTML = `
         <tr>
@@ -1541,12 +1562,29 @@
       return;
     }
 
+    let visibleCount = 0;
+
     comparisonResults.forEach((item, idx) => {
       const tb = item.tb || {};
       const assignee = item.assignee || '-';
       const action = item.action;
-      const matchedBoxId = item.serverBoxId;
+      const matchedBoxId = item.serverBoxId || '';
       const serverStatus = item.serverStatus || 'Chưa có';
+
+      // Tab 1 Search Filtering
+      if (searchTerm) {
+        const mod = (tb.module || '').toLowerCase();
+        const stage = (tb.stage || '').toLowerCase();
+        const title = (tb.title || '').toLowerCase();
+        const anchor = (tb.anchor_object_id || '').toLowerCase();
+        const asg = (assignee || '').toLowerCase();
+        const boxId = String(matchedBoxId).toLowerCase();
+        const st = String(serverStatus).toLowerCase();
+        const act = String(action).toLowerCase();
+        const matches = mod.includes(searchTerm) || stage.includes(searchTerm) || title.includes(searchTerm) || anchor.includes(searchTerm) || asg.includes(searchTerm) || boxId.includes(searchTerm) || st.includes(searchTerm) || act.includes(searchTerm);
+        if (!matches) return;
+      }
+      visibleCount++;
 
       if (action === 'SKIP') {
         const tr = document.createElement('tr');
@@ -1580,6 +1618,14 @@
         actionLabel = 'Đã mượn';
       }
 
+      let shortageBadge = '';
+      if (item.serverBox && item.serverBox.contents) {
+        const stockCheck = checkStockShortage(item.serverBox.contents);
+        if (stockCheck.hasShortage) {
+          shortageBadge = `<a href="/boxes/${encodeURIComponent(matchedBoxId)}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10.5px; padding:2px 6px; border-radius:4px; margin-left:4px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${stockCheck.summaryText}\n\n👉 Bấm để mở trang sửa TaskBox">⚠️ Thiếu kho (${stockCheck.shortageList.length})</a>`;
+        }
+      }
+
       let lifecycleActionBtn = '';
       if (matchedBoxId) {
         if (serverStatus === 'created') {
@@ -1610,11 +1656,21 @@
         <td>${tb.item_count || 0} items</td>
         <td><b>${tb.total_qty || 0}</b></td>
         <td><input type="text" class="sm-assignee-row-input" data-idx="${idx}" value="${assignee === '-' ? '' : assignee}" placeholder="ID Người nhận" style="background:#0f172a; border:1px solid #334155; color:#38bdf8; padding:2px 6px; border-radius:4px; width:90px; font-family:monospace; font-size:12px;" /></td>
-        <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span></td>
+        <td><span style="color:${serverStatus === 'assigned' ? '#34d399' : (serverStatus === 'collected' ? '#f87171' : (serverStatus === 'created' ? '#fde047' : '#94a3b8'))}; font-weight:600;">${serverStatus}</span>${shortageBadge}</td>
         <td><span class="sm-badge ${badgeClass}">${actionLabel}</span>${lifecycleActionBtn}</td>
       `;
       tbody.appendChild(tr);
     });
+
+    if (visibleCount === 0 && comparisonResults.length > 0) {
+      const p = document.createElement('tr');
+      p.innerHTML = `
+        <td colspan="10" style="text-align: center; color: #64748b; padding: 24px;">
+          Không tìm thấy TaskBox nào trong Sheet phù hợp với từ khóa "<b>${searchTerm}</b>".
+        </td>
+      `;
+      tbody.appendChild(p);
+    }
 
     attachPreviewRowEvents();
     updateSelectionSummary();
@@ -2770,6 +2826,9 @@
       return true;
     });
 
+    const clearBtn = document.getElementById('sm-web-btn-search-clear');
+    if (clearBtn) clearBtn.style.display = searchTerm ? 'inline-block' : 'none';
+
     // Default select state
     filteredWebBoxes.forEach(b => {
       if (typeof b.isSelected === 'undefined') b.isSelected = false;
@@ -3166,13 +3225,63 @@
     });
   });
 
-  // Search Input (Debounced to eliminate flickering during typing)
+  // --- TAB 1 SEARCH EVENT LISTENERS ---
+  let sheetSearchDebounceTimer = null;
+  const sheetSearchInput = document.getElementById('sm-sheet-search-input');
+  const sheetSearchBtn = document.getElementById('sm-sheet-btn-search');
+  const sheetSearchClearBtn = document.getElementById('sm-sheet-btn-search-clear');
+
+  const executeSheetSearch = () => {
+    currentTab1SearchTerm = (sheetSearchInput?.value || '').trim();
+    renderPreviewTable();
+  };
+
+  sheetSearchInput?.addEventListener('input', () => {
+    clearTimeout(sheetSearchDebounceTimer);
+    sheetSearchDebounceTimer = setTimeout(executeSheetSearch, 150);
+  });
+
+  sheetSearchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(sheetSearchDebounceTimer);
+      executeSheetSearch();
+    }
+  });
+
+  sheetSearchBtn?.addEventListener('click', executeSheetSearch);
+
+  sheetSearchClearBtn?.addEventListener('click', () => {
+    if (sheetSearchInput) sheetSearchInput.value = '';
+    executeSheetSearch();
+  });
+
+  // --- TAB 2 SEARCH EVENT LISTENERS ---
   let searchDebounceTimer = null;
-  document.getElementById('sm-web-search-input')?.addEventListener('input', () => {
+  const webSearchInput = document.getElementById('sm-web-search-input');
+  const webSearchBtn = document.getElementById('sm-web-btn-search');
+  const webSearchClearBtn = document.getElementById('sm-web-btn-search-clear');
+
+  const executeWebSearch = () => {
+    filterWebBoxes();
+  };
+
+  webSearchInput?.addEventListener('input', () => {
     clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-      filterWebBoxes();
-    }, 150);
+    searchDebounceTimer = setTimeout(executeWebSearch, 150);
+  });
+
+  webSearchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      clearTimeout(searchDebounceTimer);
+      executeWebSearch();
+    }
+  });
+
+  webSearchBtn?.addEventListener('click', executeWebSearch);
+
+  webSearchClearBtn?.addEventListener('click', () => {
+    if (webSearchInput) webSearchInput.value = '';
+    executeWebSearch();
   });
 
   // Fetch Button
