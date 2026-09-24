@@ -778,7 +778,7 @@
       <div class="sm-sync-header">
         <h2>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-          Hệ Thống Quản Lý & Đồng Bộ TaskBox
+          Đường về nhà còn xa!!!!! 
         </h2>
         <div style="display: flex; align-items: center; gap: 6px;">
           <button class="sm-sync-header-btn" id="sm-modal-maximize" title="Phóng to / Thu nhỏ (Maximize)">
@@ -2089,9 +2089,24 @@
     logBox.style.display = 'block';
     logBox.innerHTML = '';
 
-    const log = (msg) => {
+    const log = (msg, boxId = null) => {
       const p = document.createElement('div');
-      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      p.style.marginBottom = '3px';
+      p.style.lineHeight = '1.4';
+      if (typeof msg === 'string') {
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      }
+      if (boxId) {
+        const link = document.createElement('a');
+        link.href = `/boxes/${encodeURIComponent(boxId)}`;
+        link.target = '_blank';
+        link.style.color = '#f59e0b';
+        link.style.fontWeight = '700';
+        link.style.marginLeft = '8px';
+        link.style.textDecoration = 'underline';
+        link.textContent = '[ ✏️ Mở Sửa Box ↗ ]';
+        p.appendChild(link);
+      }
       logBox.appendChild(p);
       logBox.scrollTop = logBox.scrollHeight;
     };
@@ -2122,7 +2137,7 @@
         log(`✅ [${tb.module} ${tb.stage}] Đã mượn thành công!`);
         success++;
       } catch (e) {
-        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`);
+        log(`❌ [${tb.module} ${tb.stage}] Thất bại: ${e.message}`, serverBoxId);
         failed++;
       }
       await new Promise(r => setTimeout(r, 100));
@@ -2805,6 +2820,12 @@
       else if (status === 'created') { statusBadge = 'sm-badge-update'; }
       else if (status === 'deactivated') { statusBadge = 'sm-badge-skip'; }
 
+      const stockCheck = checkStockShortage(b.contents);
+      let shortageBadge = '';
+      if (stockCheck.hasShortage) {
+        shortageBadge = `<a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10.5px; padding:2px 6px; border-radius:4px; margin-left:4px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${stockCheck.summaryText}\n\n👉 Bấm để mở trang sửa TaskBox">⚠️ Thiếu kho (${stockCheck.shortageList.length})</a>`;
+      }
+
       let actionBtns = '';
       if (status === 'created' || status === 'assigned') {
         actionBtns += `<button type="button" class="sm-pill-btn sm-web-row-assign-btn" data-idx="${idx}" style="background:#4338ca; color:#c7d2fe; margin-left:4px; border:none; padding:2px 7px; font-size:11px;" title="Gán / Chỉnh sửa Assignee">${status === 'created' ? 'Gán' : 'Đổi Gán'}</button>`;
@@ -2830,7 +2851,7 @@
         <td><b>${totalQty}</b> (${itemCount} items)</td>
         <td><span style="background:#1e293b; padding:2px 6px; border-radius:4px; color:#38bdf8; font-weight:600;">👤 ${holder}</span></td>
         <td style="font-size:11px; color:#94a3b8;">${dateStr}</td>
-        <td><span class="sm-badge ${statusBadge}">${status}</span></td>
+        <td><span class="sm-badge ${statusBadge}">${status}</span>${shortageBadge}</td>
         <td style="text-align:center; white-space:nowrap;">${actionBtns}</td>
       `;
       tbody.appendChild(tr);
@@ -2969,9 +2990,12 @@
           alert(`✅ Đã mượn "${b.title}" thành công!`);
           await fetchWebBoxes();
         } catch (err) {
-          alert('Lỗi kết nối: ' + err.message);
           btn.disabled = false;
           btn.textContent = 'Mượn';
+          const openEdit = confirm(`❌ Mượn thất bại cho "${b.title}":\n${err.message}\n\n👉 Bạn có muốn mở trang chi tiết TaskBox trên Scenario Manager để kiểm tra và sửa lại số lượng không?`);
+          if (openEdit) {
+            window.open(`/boxes/${encodeURIComponent(boxId)}`, '_blank');
+          }
         }
       });
     });
@@ -3394,10 +3418,25 @@
       logBox.innerHTML = '';
     }
 
-    const log = (msg) => {
+    const log = (msg, boxId = null) => {
       if (!logBox) return;
       const p = document.createElement('div');
-      p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      p.style.marginBottom = '3px';
+      p.style.lineHeight = '1.4';
+      if (typeof msg === 'string') {
+        p.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      }
+      if (boxId) {
+        const link = document.createElement('a');
+        link.href = `/boxes/${encodeURIComponent(boxId)}`;
+        link.target = '_blank';
+        link.style.color = '#f59e0b';
+        link.style.fontWeight = '700';
+        link.style.marginLeft = '8px';
+        link.style.textDecoration = 'underline';
+        link.textContent = '[ ✏️ Mở Sửa Box ↗ ]';
+        p.appendChild(link);
+      }
       logBox.appendChild(p);
       logBox.scrollTop = logBox.scrollHeight;
     };
@@ -3428,7 +3467,7 @@
         log(`✅ Box ${boxId} đã mượn thành công!`);
         success++;
       } catch (e) {
-        log(`❌ Box ${boxId} thất bại: ${e.message}`);
+        log(`❌ Box ${boxId} thất bại: ${e.message}`, boxId);
         failed++;
       }
       await new Promise(res => setTimeout(res, 100));
