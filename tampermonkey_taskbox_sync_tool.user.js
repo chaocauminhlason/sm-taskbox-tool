@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.19.1
+// @version      2.19.2
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -3101,9 +3101,9 @@
       } catch(e) {}
 
       printRoot.innerHTML = cardsData.map((c, idx) => {
-        const stageBadge = c.stage ? '<span class="badge-stage">' + c.stage + '</span>' : '';
-        const modBadge = c.module ? '<span class="badge-mod">Mod: ' + c.module + '</span>' : '';
-        const anchorBadge = c.anchor ? '<span class="badge-mod">Anchor: ' + c.anchor + '</span>' : '';
+        const stageBadge = (c.stage && c.stage !== '-' && c.stage !== 'none') ? '<span class="badge-stage">' + c.stage + '</span>' : '';
+        const modBadge = (c.module && c.module !== '-' && c.module !== 'none') ? '<span class="badge-mod">Mod: ' + c.module + '</span>' : '';
+        const anchorBadge = (c.anchor && c.anchor !== '-' && c.anchor !== 'none' && c.anchor !== 'null') ? '<span class="badge-mod">⚓ #' + c.anchor.replace(/^#/, '') + '</span>' : '';
 
         const qrHtml = showQr ? '<div class="card-qr-box"><img src="' + c.qrUrl + '" alt="QR" /></div>' : '';
         
@@ -3118,19 +3118,22 @@
           contentsHtml = '<div class="card-items-list">📦 <b>Nội dung:</b> ' + itemsText + extra + '</div>';
         }
 
-        const dateHtml = showDate ? '<span>📅 ' + c.dateStr + '</span>' : '';
+        const dateHtml = (showDate && c.dateStr && c.dateStr !== '-' && c.dateStr !== 'null') ? '<span>📅 ' + c.dateStr + '</span>' : '';
+        const holderText = (c.assignee && c.assignee !== '-' && c.assignee !== 'none' && c.assignee !== 'null') ? c.assignee : 'Chưa gán';
+        const anchorRow = (c.anchor && c.anchor !== '-' && c.anchor !== 'none' && c.anchor !== 'null') ? '<div class="card-row"><span>⚓ Gốc: #' + c.anchor.replace(/^#/, '') + '</span></div>' : '';
+        const cardTitle = c.title || ('TaskBox #' + c.boxId);
 
         return '<div class="label-card">' +
           '<div class="card-header">' +
-            '<div class="card-title">' + c.title + '</div>' +
+            '<div class="card-title">' + cardTitle + '</div>' +
             '<div class="card-badges">' + stageBadge + modBadge + anchorBadge + '</div>' +
           '</div>' +
           '<div class="card-body">' +
             qrHtml +
             '<div class="card-details">' +
-              '<div class="card-row"><span class="card-holder">👤 ' + (c.assignee || 'Chưa gán') + '</span></div>' +
-              '<div class="card-row"><span class="card-qty">📦 ' + c.totalQty + ' món (' + c.itemCount + ' loại)</span></div>' +
-              (c.anchor ? '<div class="card-row"><span>⚓ Gốc: #' + c.anchor + '</span></div>' : '') +
+              '<div class="card-row"><span class="card-holder">👤 ' + holderText + '</span></div>' +
+              '<div class="card-row"><span class="card-qty">📦 ' + (c.totalQty || 0) + ' món (' + (c.itemCount || 0) + ' loại)</span></div>' +
+              anchorRow +
               contentsHtml +
             '</div>' +
           '</div>' +
@@ -3504,18 +3507,34 @@
       const title = b.title || 'TaskBox';
       const status = b.status || 'unknown';
       const holder = b.current_holder || b.borrower || b.assignee || '-';
-      const anchor = b.anchor_object_id || '-';
+      const holderRaw = (b.current_holder && b.current_holder !== '-') ? b.current_holder : ((b.borrower && b.borrower !== '-') ? b.borrower : ((b.assignee && b.assignee !== '-') ? b.assignee : ''));
+      const holderDisplay = holderRaw ? `<span style="background:#1e293b; padding:2px 6px; border-radius:4px; color:#38bdf8; font-weight:600;">👤 ${holderRaw}</span>` : `<span style="color:#64748b; font-size:11px;">Chưa gán</span>`;
+      
+      const anchorRaw = b.anchor_object_id || '';
+      const anchorDisplay = (anchorRaw && anchorRaw !== '-') ? `<code>#${anchorRaw.replace(/^#/, '')}</code>` : `<span style="color:#64748b;">-</span>`;
+
       const contents = b.contents || [];
       const totalQty = contents.reduce((sum, c) => sum + (c.quantity || 1), 0);
       const itemCount = contents.length;
       const dateStr = formatDateVN(b.created_at);
 
-      let mod = '-';
-      let stage = '-';
+      let mod = '';
+      let stage = '';
       const mMatch = title.match(/M\d+(?:-\d+)?/i);
       if (mMatch) mod = mMatch[0].toUpperCase();
       const sMatch = title.match(/(?:A\d|B\d)/i);
       if (sMatch) stage = sMatch[0].toUpperCase();
+
+      let modStageDisplay = '';
+      if (mod && stage) {
+        modStageDisplay = `<span style="color:#60a5fa; font-weight:600;">${mod}</span> <span style="color:#38bdf8; font-weight:700;">${stage}</span>`;
+      } else if (mod) {
+        modStageDisplay = `<span style="color:#60a5fa; font-weight:600;">${mod}</span>`;
+      } else if (stage) {
+        modStageDisplay = `<span style="color:#38bdf8; font-weight:700;">${stage}</span>`;
+      } else {
+        modStageDisplay = `<span style="color:#64748b;">-</span>`;
+      }
 
       let statusBadge = 'sm-badge-skip';
       if (status === 'collected') { statusBadge = 'sm-badge-collected'; }
@@ -3555,10 +3574,10 @@
         <td style="text-align:center;"><input type="checkbox" class="sm-web-row-check" data-idx="${idx}" ${b.isSelected ? 'checked' : ''} /></td>
         <td><a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" style="color:#38bdf8; text-decoration:none; font-family:monospace; font-size:11px;" title="Mở chi tiết Box">${boxId} ↗</a></td>
         <td><a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" style="color:#f8fafc; text-decoration:none; font-weight:700;" title="Mở chi tiết Box">${title}</a></td>
-        <td><span style="color:#60a5fa; font-weight:600;">${mod}</span> <span style="color:#38bdf8; font-weight:700;">${stage}</span></td>
-        <td><code>${anchor}</code></td>
+        <td>${modStageDisplay}</td>
+        <td>${anchorDisplay}</td>
         <td><b>${totalQty}</b> (${itemCount} items)</td>
-        <td><span style="background:#1e293b; padding:2px 6px; border-radius:4px; color:#38bdf8; font-weight:600;">👤 ${holder}</span></td>
+        <td>${holderDisplay}</td>
         <td style="font-size:11px; color:#94a3b8;">${dateStr}</td>
         <td><span class="sm-badge ${statusBadge}">${status}</span>${shortageBadge}</td>
         <td style="text-align:center; white-space:nowrap;">${actionBtns}</td>
