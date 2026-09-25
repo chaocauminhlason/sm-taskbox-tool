@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.18.2
+// @version      2.19.0
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1652,7 +1652,13 @@
       if (item.serverBox && item.serverBox.contents) {
         const stockCheck = checkStockShortage(item.serverBox.contents);
         if (stockCheck.hasShortage) {
-          shortageBadge = `<a href="/boxes/${encodeURIComponent(matchedBoxId)}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10.5px; padding:2px 6px; border-radius:4px; margin-left:4px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${stockCheck.summaryText}\n\n👉 Bấm để mở trang sửa TaskBox">⚠️ Thiếu kho (${stockCheck.shortageList.length})</a>`;
+          const links = stockCheck.shortageList.map(s => {
+            const label = s.name.length > 16 ? `${s.name.slice(0, 14)}...` : s.name;
+            const objParam = s.objectId || s.name;
+            const linkUrl = `/object?filter_type=${encodeURIComponent(objParam)}`;
+            return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang sửa số lượng đồ trên web">⚠️ ${label} (#${s.objectId}) ↗</a>`;
+          }).join(' ');
+          shortageBadge = ` ${links}`;
         }
       }
 
@@ -2375,255 +2381,568 @@
       return;
     }
 
-    const cardsHtml = items.map((item, idx) => {
+    const cardsData = items.map((item, idx) => {
       const boxId = item.serverBoxId || (item.tb && item.tb.box_id) || '';
       const boxUrl = `https://sm.config.inc/boxes/${encodeURIComponent(boxId)}`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(boxUrl)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=1&ecc=M&data=${encodeURIComponent(boxUrl)}`;
       const title = (item.tb && item.tb.title) || 'TaskBox';
       const module = (item.tb && item.tb.module) || '';
       const stage = (item.tb && item.tb.stage) || '';
       const anchor = (item.tb && item.tb.anchor_object_id) || '';
-      const totalQty = (item.tb && item.tb.total_qty) || 0;
-      const itemCount = (item.tb && item.tb.item_count) || 0;
+      const contents = (item.serverBox && item.serverBox.contents) || (item.tb && item.tb.contents) || [];
+      const totalQty = (item.tb && item.tb.total_qty) || contents.reduce((s, c) => s + (c.quantity || 1), 0) || 0;
+      const itemCount = (item.tb && item.tb.item_count) || contents.length || 0;
       const assignee = item.assignee || '';
       const dateStr = formatDateVN(item.serverCreatedAt);
 
-      return `
-        <div class="label-card">
-          <div class="label-qr-wrap">
-            <img src="${qrUrl}" alt="QR for ${title}" loading="eager" />
-          </div>
-          <div class="label-info">
-            <div class="label-title">${title}</div>
-            <div class="label-badge-row">
-              <span class="label-badge label-badge-stage">${stage}</span>
-              <span class="label-badge">Mod: ${module}</span>
-              ${anchor ? `<span class="label-badge">Anchor: ${anchor}</span>` : ''}
-              ${assignee ? `<span class="label-badge" style="background:#e0e7ff; color:#3730a3;">👤 ${assignee}</span>` : ''}
-            </div>
-            <div class="label-meta-text">
-              <span><b>${totalQty}</b> đồ (${itemCount} loại)</span>
-            </div>
-            <div class="label-date">📅 Ngày tạo: <b>${dateStr}</b></div>
-            <div class="label-id">ID: ${boxId}</div>
-            <div class="label-link">${boxUrl}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
+      return {
+        boxId,
+        boxUrl,
+        qrUrl,
+        title,
+        module,
+        stage,
+        anchor,
+        contents,
+        totalQty,
+        itemCount,
+        assignee,
+        dateStr
+      };
+    });
 
-    const pageHtml = `
-      <!DOCTYPE html>
-      <html lang="vi">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>In Nhãn Mã QR TaskBoxes (${items.length} Box)</title>
-        <style>
-          * { box-sizing: border-box; }
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            margin: 0;
-            padding: 16px;
-            background: #f8fafc;
-            color: #0f172a;
-          }
-          .toolbar {
-            background: #0f172a;
-            color: #ffffff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-          }
-          .toolbar-title {
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          .toolbar-actions {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-          }
-          .btn-print {
-            background: #16a34a;
-            color: white;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-          }
-          .btn-print:hover { background: #15803d; }
-          .grid-toggle-btn {
-            background: #334155;
-            color: #e2e8f0;
-            border: 1px solid #475569;
-            padding: 7px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-          }
-          .grid-toggle-btn:hover { background: #475569; }
+    const initialCardsJson = JSON.stringify(cardsData).replace(/</g, '\\u003c');
 
-          .label-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-          }
-          .label-grid.cols-3 {
-            grid-template-columns: repeat(3, 1fr);
-          }
-          .label-card {
-            background: #ffffff;
-            border: 1.5px dashed #64748b;
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            gap: 14px;
-            align-items: center;
-            page-break-inside: avoid;
-            break-inside: avoid;
-            min-height: 145px;
-          }
-          .label-qr-wrap {
-            flex-shrink: 0;
-            width: 110px;
-            height: 110px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #fff;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 3px;
-          }
-          .label-qr-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-          }
-          .label-info {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            overflow: hidden;
-          }
-          .label-title {
-            font-size: 15px;
-            font-weight: 800;
-            color: #0f172a;
-            line-height: 1.25;
-            margin: 0;
-            word-break: break-word;
-          }
-          .label-badge-row {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 2px 0;
-          }
-          .label-badge {
-            background: #f1f5f9;
-            color: #334155;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 700;
-            border: 1px solid #e2e8f0;
-          }
-          .label-badge-stage {
-            background: #dbeafe;
-            color: #1e40af;
-            border-color: #bfdbfe;
-          }
-          .label-meta-text {
-            font-size: 12px;
-            color: #475569;
-          }
-          .label-date {
-            font-size: 11px;
-            color: #334155;
-          }
-          .label-id {
-            font-size: 10px;
-            font-family: monospace;
-            color: #64748b;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-          .label-link {
-            font-size: 9px;
-            color: #2563eb;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
+    const pageHtml = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>In Nhãn Mã QR TaskBoxes (${items.length} Box) - Hỗ trợ Máy In Nhiệt</title>
+  <style id="page-style">
+    @page { size: 75mm 50mm; margin: 1.5mm; }
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #0f172a;
+      color: #0f172a;
+    }
+    
+    /* TOOLBAR CONTROLS */
+    .toolbar {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 14px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      border: 1px solid #334155;
+    }
+    .toolbar-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .toolbar-title {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #f8fafc;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .toolbar-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      background: #0f172a;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ctrl-select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ctrl-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ctrl-checkbox input {
+      cursor: pointer;
+      accent-color: #10b981;
+    }
+    .btn-print {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.4);
+      transition: all 0.15s;
+    }
+    .btn-print:hover { background: #15803d; transform: translateY(-1px); }
+    
+    /* PREVIEW CONTAINER */
+    #print-root {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
 
-          @media print {
-            body {
-              background: #fff;
-              padding: 0;
-              margin: 0;
-            }
-            .no-print { display: none !important; }
-            .label-grid {
-              grid-template-columns: repeat(2, 1fr) !important;
-              gap: 8mm !important;
-            }
-            .label-grid.cols-3 {
-              grid-template-columns: repeat(3, 1fr) !important;
-              gap: 5mm !important;
-            }
-            .label-card {
-              border: 1px dashed #475569 !important;
-              box-shadow: none !important;
-              padding: 8px 10px !important;
-              min-height: 130px !important;
-            }
-            @page {
-              size: A4 portrait;
-              margin: 8mm;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="toolbar no-print">
-          <div class="toolbar-title">
-            <span>🏷️ Nhãn Mã QR TaskBoxes (${items.length} Box)</span>
-          </div>
-          <div class="toolbar-actions">
-            <button class="grid-toggle-btn" onclick="document.getElementById('grid').classList.toggle('cols-3')">
-              🔄 Đổi 2 Cột / 3 Cột
-            </button>
-            <button class="btn-print" onclick="window.print()">
-              🖨️ Bấm In Ngay (Print / PDF)
-            </button>
-          </div>
-        </div>
+    /* THERMAL DECAL PRESETS (1 Label per page) */
+    body.preset-label-75-50 .label-card { width: 75mm; height: 49mm; max-height: 49mm; }
+    body.preset-label-50-30 .label-card { width: 50mm; height: 29mm; max-height: 29mm; padding: 3px 5px; }
+    body.preset-label-80-50 .label-card { width: 80mm; height: 49mm; max-height: 49mm; }
+    body.preset-label-100-75 .label-card { width: 100mm; height: 74mm; max-height: 74mm; }
+    body.preset-label-100-150 .label-card { width: 100mm; height: 148mm; max-height: 148mm; }
 
-        <div class="label-grid" id="grid">
-          ${cardsHtml}
-        </div>
-      </body>
-      </html>
-    `;
+    /* CONTINUOUS ROLL PRESETS (K80 / K58) */
+    body.preset-roll-k80 #print-root, body.preset-roll-k58 #print-root {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    body.preset-roll-k80 .label-card { width: 72mm; margin-bottom: 6mm; border-bottom: 2px dashed #000; }
+    body.preset-roll-k58 .label-card { width: 48mm; margin-bottom: 5mm; border-bottom: 2px dashed #000; padding: 4px; }
+
+    /* A4 GRID PRESETS */
+    body.preset-a4-2col #print-root {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 210mm;
+    }
+    body.preset-a4-3col #print-root {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+      max-width: 210mm;
+    }
+    body.preset-a4-4col #print-root {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 297mm;
+    }
+
+    /* CARD STRUCTURE */
+    .label-card {
+      background: #ffffff;
+      border: 1.5px solid #000000;
+      border-radius: 4px;
+      padding: 6px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #000000;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1.5px solid #000000;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
+      gap: 6px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.2;
+      word-break: break-word;
+      color: #000000;
+      flex: 1;
+    }
+    .card-badges {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .badge-solid {
+      background: #000000;
+      color: #ffffff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .badge-outline {
+      border: 1.5px solid #000000;
+      color: #000000;
+      padding: 0 4px;
+      border-radius: 3px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+    
+    .card-body {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1;
+    }
+    .card-qr-box {
+      flex-shrink: 0;
+      width: 82px;
+      height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #000000;
+      padding: 1px;
+      background: #ffffff;
+    }
+    .card-qr-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    .card-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+      line-height: 1.25;
+      color: #000000;
+    }
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+    }
+    .card-holder {
+      font-weight: 800;
+      font-size: 12px;
+    }
+    .card-qty {
+      font-weight: 800;
+    }
+    .card-footer-info {
+      margin-top: 3px;
+      border-top: 1px dashed #666;
+      padding-top: 2px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #222;
+      font-family: monospace;
+    }
+    
+    /* ITEMS LIST EXPANDED (IF ENABLED) */
+    .card-items-list {
+      margin-top: 3px;
+      border-top: 1px solid #000;
+      padding-top: 2px;
+      font-size: 9.5px;
+      max-height: 48px;
+      overflow: hidden;
+      line-height: 1.2;
+    }
+
+    /* MINI PRESET (50x30mm) FINE-TUNING */
+    body.preset-label-50-30 .card-title { font-size: 10.5px; }
+    body.preset-label-50-30 .badge-solid, body.preset-label-50-30 .badge-outline { font-size: 9px; padding: 0 3px; }
+    body.preset-label-50-30 .card-qr-box { width: 56px; height: 56px; }
+    body.preset-label-50-30 .card-details { font-size: 9px; gap: 1px; }
+    body.preset-label-50-30 .card-holder { font-size: 9.5px; }
+    body.preset-label-50-30 .card-footer-info { font-size: 8px; }
+
+    /* K58 MINI ROLL FINE-TUNING */
+    body.preset-roll-k58 .card-title { font-size: 11px; }
+    body.preset-roll-k58 .card-qr-box { width: 62px; height: 62px; }
+    body.preset-roll-k58 .card-details { font-size: 9.5px; }
+
+    /* MONOCHROME HIGH CONTRAST (THERMAL OPTIMIZED) */
+    body.mode-high-contrast .label-card {
+      border: 2px solid #000000 !important;
+      color: #000000 !important;
+      background: #ffffff !important;
+    }
+    body.mode-high-contrast .badge-solid {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+    body.mode-high-contrast .card-header {
+      border-bottom: 2px solid #000000 !important;
+    }
+
+    /* PRINT RULES */
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .no-print { display: none !important; }
+      
+      /* Single label presets: Page break after each card */
+      body.preset-label-75-50 .label-card,
+      body.preset-label-50-30 .label-card,
+      body.preset-label-80-50 .label-card,
+      body.preset-label-100-75 .label-card,
+      body.preset-label-100-150 .label-card {
+        page-break-after: always !important;
+        break-after: page !important;
+        box-shadow: none !important;
+        border: 1.5px solid #000000 !important;
+      }
+
+      /* Roll presets */
+      body.preset-roll-k80 .label-card,
+      body.preset-roll-k58 .label-card {
+        page-break-after: auto !important;
+        break-after: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-bottom: 2px dashed #000000 !important;
+      }
+
+      /* A4 Grids */
+      body.preset-a4-2col .label-card,
+      body.preset-a4-3col .label-card,
+      body.preset-a4-4col .label-card {
+        page-break-after: auto !important;
+        break-after: auto !important;
+        box-shadow: none !important;
+        border: 1px dashed #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="preset-label-75-50 mode-high-contrast">
+  <div class="toolbar no-print">
+    <div class="toolbar-top">
+      <div class="toolbar-title">
+        <span>🖨️ In Mã QR TaskBox (${items.length} Box)</span>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-print" id="btn-do-print">
+          🖨️ Bấm In Ngay (Ctrl + P)
+        </button>
+      </div>
+    </div>
+    <div class="toolbar-controls">
+      <div class="ctrl-group">
+        <label for="sel-preset"><b>Khổ Giấy & Loại Máy In:</b></label>
+        <select id="sel-preset" class="ctrl-select">
+          <optgroup label="🏷️ Máy in Tem Nhãn Nhiệt (Decal dán hộp)">
+            <option value="label-75-50" selected>🏷️ Decal 75x50 mm (Chuẩn dán TaskBox)</option>
+            <option value="label-50-30">🏷️ Decal 50x30 mm (Mini nhỏ gọn)</option>
+            <option value="label-80-50">🏷️ Decal 80x50 mm</option>
+            <option value="label-100-75">🏷️ Decal 100x75 mm (Lớn rõ nét)</option>
+            <option value="label-100-150">🏷️ Decal 100x150 mm (4x6" / A6)</option>
+          </optgroup>
+          <optgroup label="🧾 Máy in Hóa Đơn Nhiệt (Cuộn liên tục)">
+            <option value="roll-k80">🧾 Cuộn Nhiệt K80 (Khổ 80mm)</option>
+            <option value="roll-k58">🧾 Cuộn Nhiệt K58 (Khổ 58mm)</option>
+          </optgroup>
+          <optgroup label="📄 Máy in Thông Thường (Giấy A4 / A5)">
+            <option value="a4-2col">📄 Giấy A4 (Lưới 2 Cột)</option>
+            <option value="a4-3col">📄 Giấy A4 (Lưới 3 Cột)</option>
+            <option value="a4-4col">📄 Giấy A4 (Lưới 4 Cột - Ngang)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <label class="ctrl-checkbox">
+        <input type="checkbox" id="chk-contrast" checked />
+        <span>Đậm nét (Tối ưu in nhiệt)</span>
+      </label>
+
+      <label class="ctrl-checkbox">
+        <input type="checkbox" id="chk-show-qr" checked />
+        <span>Hiện Mã QR</span>
+      </label>
+
+      <label class="ctrl-checkbox">
+        <input type="checkbox" id="chk-show-date" checked />
+        <span>Hiện Ngày tạo</span>
+      </label>
+
+      <label class="ctrl-checkbox">
+        <input type="checkbox" id="chk-show-contents" />
+        <span>Chi tiết đồ con</span>
+      </label>
+    </div>
+  </div>
+
+  <div id="print-root"></div>
+
+  <script>
+    const cardsData = ${initialCardsJson};
+
+    const PAGE_SIZES = {
+      'label-75-50': '@page { size: 75mm 50mm; margin: 1.5mm; }',
+      'label-50-30': '@page { size: 50mm 30mm; margin: 1mm; }',
+      'label-80-50': '@page { size: 80mm 50mm; margin: 2mm; }',
+      'label-100-75': '@page { size: 100mm 75mm; margin: 2mm; }',
+      'label-100-150': '@page { size: 100mm 150mm; margin: 3mm; }',
+      'roll-k80': '@page { size: 80mm auto; margin: 2mm; }',
+      'roll-k58': '@page { size: 58mm auto; margin: 1.5mm; }',
+      'a4-2col': '@page { size: A4 portrait; margin: 6mm; }',
+      'a4-3col': '@page { size: A4 portrait; margin: 5mm; }',
+      'a4-4col': '@page { size: A4 landscape; margin: 5mm; }'
+    };
+
+    // Load saved settings
+    let savedSettings = {};
+    try {
+      savedSettings = JSON.parse(localStorage.getItem('sm_thermal_print_cfg') || '{}');
+    } catch(e) {}
+
+    const selPreset = document.getElementById('sel-preset');
+    const chkContrast = document.getElementById('chk-contrast');
+    const chkShowQr = document.getElementById('chk-show-qr');
+    const chkShowDate = document.getElementById('chk-show-date');
+    const chkShowContents = document.getElementById('chk-show-contents');
+    const pageStyle = document.getElementById('page-style');
+    const printRoot = document.getElementById('print-root');
+
+    if (savedSettings.preset && PAGE_SIZES[savedSettings.preset]) {
+      selPreset.value = savedSettings.preset;
+    }
+    if (typeof savedSettings.contrast === 'boolean') chkContrast.checked = savedSettings.contrast;
+    if (typeof savedSettings.showQr === 'boolean') chkShowQr.checked = savedSettings.showQr;
+    if (typeof savedSettings.showDate === 'boolean') chkShowDate.checked = savedSettings.showDate;
+    if (typeof savedSettings.showContents === 'boolean') chkShowContents.checked = savedSettings.showContents;
+
+    function renderCards() {
+      const preset = selPreset.value;
+      const contrast = chkContrast.checked;
+      const showQr = chkShowQr.checked;
+      const showDate = chkShowDate.checked;
+      const showContents = chkShowContents.checked;
+
+      // Update Body Classes
+      document.body.className = 'preset-' + preset + (contrast ? ' mode-high-contrast' : '');
+      pageStyle.textContent = PAGE_SIZES[preset] || PAGE_SIZES['label-75-50'];
+
+      // Save to localStorage
+      try {
+        localStorage.setItem('sm_thermal_print_cfg', JSON.stringify({
+          preset,
+          contrast,
+          showQr,
+          showDate,
+          showContents
+        }));
+      } catch(e) {}
+
+      printRoot.innerHTML = cardsData.map((c, idx) => {
+        const stageBadge = c.stage ? '<span class="badge-solid">' + c.stage + '</span>' : '';
+        const modBadge = c.module ? '<span class="badge-outline">Mod: ' + c.module + '</span>' : '';
+        const anchorBadge = c.anchor ? '<span class="badge-outline">Anchor: ' + c.anchor + '</span>' : '';
+
+        const qrHtml = showQr ? '<div class="card-qr-box"><img src="' + c.qrUrl + '" alt="QR" /></div>' : '';
+        
+        let contentsHtml = '';
+        if (showContents && Array.isArray(c.contents) && c.contents.length > 0) {
+          const itemsText = c.contents.slice(0, 6).map(it => {
+            const name = it.name_vi || it.name || ('#' + (it.object_id || ''));
+            const qty = it.quantity || 1;
+            return qty + 'x ' + name;
+          }).join(', ');
+          const extra = c.contents.length > 6 ? ' (+' + (c.contents.length - 6) + ' đồ khác)' : '';
+          contentsHtml = '<div class="card-items-list">📦 <b>Nội dung:</b> ' + itemsText + extra + '</div>';
+        }
+
+        const dateHtml = showDate ? '<span>📅 ' + c.dateStr + '</span>' : '';
+
+        return '<div class="label-card">' +
+          '<div class="card-header">' +
+            '<div class="card-title">' + c.title + '</div>' +
+            '<div class="card-badges">' + stageBadge + modBadge + anchorBadge + '</div>' +
+          '</div>' +
+          '<div class="card-body">' +
+            qrHtml +
+            '<div class="card-details">' +
+              '<div class="card-row"><span class="card-holder">👤 ' + (c.assignee || 'Chưa gán') + '</span></div>' +
+              '<div class="card-row"><span class="card-qty">📦 ' + c.totalQty + ' món (' + c.itemCount + ' loại)</span></div>' +
+              (c.anchor ? '<div class="card-row"><span>⚓ Gốc: #' + c.anchor + '</span></div>' : '') +
+              contentsHtml +
+            '</div>' +
+          '</div>' +
+          '<div class="card-footer-info">' +
+            '<span>ID: <b>' + c.boxId + '</b></span>' +
+            dateHtml +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    selPreset.addEventListener('change', renderCards);
+    chkContrast.addEventListener('change', renderCards);
+    chkShowQr.addEventListener('change', renderCards);
+    chkShowDate.addEventListener('change', renderCards);
+    chkShowContents.addEventListener('change', renderCards);
+
+    document.getElementById('btn-do-print').addEventListener('click', () => {
+      window.print();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+      }
+    });
+
+    renderCards();
+  </script>
+</body>
+</html>`;
 
     printWin.document.open();
     printWin.document.write(pageHtml);
@@ -2970,7 +3289,13 @@
       const stockCheck = checkStockShortage(b.contents);
       let shortageBadge = '';
       if (stockCheck.hasShortage) {
-        shortageBadge = `<a href="/boxes/${encodeURIComponent(boxId)}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10.5px; padding:2px 6px; border-radius:4px; margin-left:4px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${stockCheck.summaryText}\n\n👉 Bấm để mở trang sửa TaskBox">⚠️ Thiếu kho (${stockCheck.shortageList.length})</a>`;
+        const links = stockCheck.shortageList.map(s => {
+          const label = s.name.length > 16 ? `${s.name.slice(0, 14)}...` : s.name;
+          const objParam = s.objectId || s.name;
+          const linkUrl = `/object?filter_type=${encodeURIComponent(objParam)}`;
+          return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang sửa số lượng đồ trên web">⚠️ ${label} (#${s.objectId}) ↗</a>`;
+        }).join(' ');
+        shortageBadge = ` ${links}`;
       }
 
       let actionBtns = '';
@@ -3165,14 +3490,17 @@
         openQRPrintWindow([{
           serverBoxId: b.id || b.box_id,
           serverCreatedAt: b.created_at,
+          serverStatus: b.status,
           assignee: b.current_holder || b.borrower || b.assignee || '',
+          serverBox: b,
           tb: {
             title: b.title || 'TaskBox',
             module: mod,
             stage: stage,
             anchor_object_id: b.anchor_object_id || '',
             total_qty: contents.reduce((sum, c) => sum + (c.quantity || 1), 0),
-            item_count: contents.length
+            item_count: contents.length,
+            contents: contents
           }
         }]);
       });
@@ -3748,14 +4076,17 @@
       return {
         serverBoxId: b.id || b.box_id,
         serverCreatedAt: b.created_at,
+        serverStatus: b.status,
         assignee: b.current_holder || b.borrower || b.assignee || '',
+        serverBox: b,
         tb: {
           title: b.title || 'TaskBox',
           module: mod,
           stage: stage,
           anchor_object_id: b.anchor_object_id || '',
           total_qty: contents.reduce((sum, c) => sum + (c.quantity || 1), 0),
-          item_count: contents.length
+          item_count: contents.length,
+          contents: contents
         }
       };
     });
