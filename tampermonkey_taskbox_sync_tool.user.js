@@ -2842,18 +2842,51 @@
       line-height: 1.2;
     }
 
-    /* MINI PRESET (50x30mm) FINE-TUNING */
-    body.preset-label-50-30 .card-title { font-size: 10px; }
-    body.preset-label-50-30 .badge-stage, body.preset-label-50-30 .badge-mod { font-size: 8.5px; padding: 0 3px; }
-    body.preset-label-50-30 .card-qr-box { width: 54px; height: 54px; }
-    body.preset-label-50-30 .card-details { font-size: 8.5px; gap: 1px; }
-    body.preset-label-50-30 .card-holder { font-size: 9px; }
-    body.preset-label-50-30 .card-footer-info { font-size: 7.5px; }
+    /* PRESET FINE-TUNING RULES FOR EVERY PRINTER TYPE */
+    /* 1. MINI DECAL (50x30mm) */
+    body.preset-label-50-30 .label-card { padding: 3px 5px; }
+    body.preset-label-50-30 .card-header { padding-bottom: 2px; margin-bottom: 2px; }
+    body.preset-label-50-30 .card-title { font-size: 9px; line-height: 1.15; max-height: 22px; overflow: hidden; }
+    body.preset-label-50-30 .badge-stage, body.preset-label-50-30 .badge-mod { font-size: 7.5px; padding: 0 2px; }
+    body.preset-label-50-30 .card-body { gap: 5px; }
+    body.preset-label-50-30 .card-qr-box { width: 44px; height: 44px; padding: 1px; }
+    body.preset-label-50-30 .card-details { font-size: 8px; line-height: 1.1; gap: 1px; }
+    body.preset-label-50-30 .card-holder { font-size: 8.5px; }
+    body.preset-label-50-30 .card-footer-info { font-size: 7px; padding-top: 1px; margin-top: 1px; }
 
-    /* K58 MINI ROLL FINE-TUNING */
-    body.preset-roll-k58 .card-title { font-size: 10.5px; }
-    body.preset-roll-k58 .card-qr-box { width: 58px; height: 58px; }
-    body.preset-roll-k58 .card-details { font-size: 9px; }
+    /* 2. LARGE DECAL (100x75mm) */
+    body.preset-label-100-75 .card-title { font-size: 16px; }
+    body.preset-label-100-75 .badge-stage, body.preset-label-100-75 .badge-mod { font-size: 12.5px; padding: 2px 8px; }
+    body.preset-label-100-75 .card-qr-box { width: 115px; height: 115px; }
+    body.preset-label-100-75 .card-details { font-size: 13px; gap: 5px; }
+    body.preset-label-100-75 .card-holder { font-size: 14px; }
+    body.preset-label-100-75 .card-footer-info { font-size: 11px; padding-top: 5px; margin-top: 5px; }
+
+    /* 3. EXTRA LARGE SHIPPING DECAL (100x150mm / 4x6" / A6) */
+    body.preset-label-100-150 .card-title { font-size: 20px; line-height: 1.3; }
+    body.preset-label-100-150 .badge-stage, body.preset-label-100-150 .badge-mod { font-size: 15px; padding: 3px 10px; }
+    body.preset-label-100-150 .card-qr-box { width: 155px; height: 155px; }
+    body.preset-label-100-150 .card-details { font-size: 15px; gap: 7px; }
+    body.preset-label-100-150 .card-holder { font-size: 17px; }
+    body.preset-label-100-150 .card-footer-info { font-size: 13px; padding-top: 8px; margin-top: 8px; }
+    body.preset-label-100-150 .card-items-list { font-size: 12px; max-height: 120px; }
+
+    /* 4. K58 MINI CONTINUOUS ROLL (58mm) */
+    body.preset-roll-k58 .card-body { flex-direction: column; align-items: center; gap: 6px; }
+    body.preset-roll-k58 .card-title { font-size: 11px; text-align: center; }
+    body.preset-roll-k58 .card-qr-box { width: 68px; height: 68px; }
+    body.preset-roll-k58 .card-details { font-size: 9.5px; width: 100%; }
+    body.preset-roll-k58 .card-footer-info { font-size: 8.5px; }
+
+    /* 5. K80 CONTINUOUS ROLL (80mm) */
+    body.preset-roll-k80 .card-title { font-size: 13.5px; }
+    body.preset-roll-k80 .card-qr-box { width: 80px; height: 80px; }
+    body.preset-roll-k80 .card-details { font-size: 11px; }
+
+    /* 6. A4 MULTI-COLUMN GRIDS */
+    body.preset-a4-2col .label-card, body.preset-a4-3col .label-card, body.preset-a4-4col .label-card {
+      min-height: 125px;
+    }
 
     /* HIGH CONTRAST MODE */
     body.mode-high-contrast .label-card {
