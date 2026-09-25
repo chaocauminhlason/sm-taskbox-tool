@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.19.0
+// @version      2.19.1
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -2418,123 +2418,267 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>In Nhãn Mã QR TaskBoxes (${items.length} Box) - Hỗ trợ Máy In Nhiệt</title>
+  <title>🖨️ In Nhãn Mã QR TaskBox (${items.length} Box) - Studio In Nhiệt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style id="page-style">
     @page { size: 75mm 50mm; margin: 1.5mm; }
   </style>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0;
-      padding: 16px;
-      background: #0f172a;
-      color: #0f172a;
+    :root {
+      --bg-canvas: #090d16;
+      --bg-panel: rgba(17, 24, 39, 0.88);
+      --border-panel: rgba(255, 255, 255, 0.1);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-green-hover: #059669;
+      --accent-blue: #3b82f6;
+      --label-scale: 1;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     
-    /* TOOLBAR CONTROLS */
-    .toolbar {
-      background: #1e293b;
-      color: #ffffff;
-      padding: 14px 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-canvas);
+      background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 20px 20px;
+      color: var(--text-main);
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      border: 1px solid #334155;
     }
-    .toolbar-top {
+
+    /* TOP STICKY STUDIO TOOLBAR */
+    .studio-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-panel);
+      padding: 12px 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    
+    .toolbar-top-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
-    .toolbar-title {
+    .brand-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+      font-size: 18px;
+    }
+    .brand-title {
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.01em;
       display: flex;
       align-items: center;
       gap: 8px;
-      color: #f8fafc;
     }
-    .toolbar-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
+    .brand-pill {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
     }
-    .toolbar-controls {
+    .spec-pill {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .toolbar-action-group {
       display: flex;
-      gap: 16px;
       align-items: center;
-      flex-wrap: wrap;
-      background: #0f172a;
-      padding: 10px 14px;
+      gap: 12px;
+    }
+
+    /* ZOOM CONTROLS */
+    .zoom-group {
+      display: flex;
+      align-items: center;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-panel);
       border-radius: 8px;
-      border: 1px solid #334155;
-      font-size: 13px;
-      color: #e2e8f0;
+      padding: 2px;
     }
-    .ctrl-group {
+    .zoom-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.15s;
     }
-    .ctrl-select {
+    .zoom-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .zoom-val {
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: #e2e8f0;
+      min-width: 46px;
+      text-align: center;
+    }
+
+    /* PRIMARY PRINT CTA */
+    .btn-print-cta {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 9px 22px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-print-cta:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+    .btn-print-cta:active { transform: translateY(0); }
+
+    /* CONTROLS SECOND ROW */
+    .toolbar-bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .preset-selector-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .preset-selector-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .preset-select {
       background: #1e293b;
       color: #f8fafc;
       border: 1px solid #475569;
-      padding: 6px 10px;
-      border-radius: 6px;
+      padding: 7px 12px;
+      border-radius: 8px;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
     }
-    .ctrl-checkbox {
+    .preset-select:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+
+    /* TOGGLE SWITCH CHIPS */
+    .toggles-group {
       display: flex;
       align-items: center;
-      gap: 5px;
-      cursor: pointer;
-      user-select: none;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .ctrl-checkbox input {
-      cursor: pointer;
-      accent-color: #10b981;
-    }
-    .btn-print {
-      background: #16a34a;
-      color: white;
-      border: none;
-      padding: 9px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
+    .toggle-chip {
       display: flex;
       align-items: center;
       gap: 6px;
-      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.4);
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #cbd5e1;
+      cursor: pointer;
+      user-select: none;
       transition: all 0.15s;
     }
-    .btn-print:hover { background: #15803d; transform: translateY(-1px); }
-    
-    /* PREVIEW CONTAINER */
+    .toggle-chip:hover {
+      background: rgba(51, 65, 85, 0.8);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .toggle-chip input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #10b981;
+      width: 14px;
+      height: 14px;
+    }
+    .toggle-chip.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    /* PREVIEW CANVAS WORKSPACE */
+    .preview-canvas {
+      flex: 1;
+      padding: 32px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: auto;
+    }
+
     #print-root {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
+      transform-origin: top center;
+      transition: transform 0.15s ease-out;
     }
 
     /* THERMAL DECAL PRESETS (1 Label per page) */
     body.preset-label-75-50 .label-card { width: 75mm; height: 49mm; max-height: 49mm; }
-    body.preset-label-50-30 .label-card { width: 50mm; height: 29mm; max-height: 29mm; padding: 3px 5px; }
+    body.preset-label-50-30 .label-card { width: 50mm; height: 29mm; max-height: 29mm; padding: 4px 6px; }
     body.preset-label-80-50 .label-card { width: 80mm; height: 49mm; max-height: 49mm; }
-    body.preset-label-100-75 .label-card { width: 100mm; height: 74mm; max-height: 74mm; }
-    body.preset-label-100-150 .label-card { width: 100mm; height: 148mm; max-height: 148mm; }
+    body.preset-label-100-75 .label-card { width: 100mm; height: 74mm; max-height: 74mm; padding: 10px 14px; }
+    body.preset-label-100-150 .label-card { width: 100mm; height: 148mm; max-height: 148mm; padding: 14px 16px; }
 
     /* CONTINUOUS ROLL PRESETS (K80 / K58) */
     body.preset-roll-k80 #print-root, body.preset-roll-k58 #print-root {
@@ -2543,38 +2687,38 @@
       align-items: center;
       gap: 0;
     }
-    body.preset-roll-k80 .label-card { width: 72mm; margin-bottom: 6mm; border-bottom: 2px dashed #000; }
-    body.preset-roll-k58 .label-card { width: 48mm; margin-bottom: 5mm; border-bottom: 2px dashed #000; padding: 4px; }
+    body.preset-roll-k80 .label-card { width: 72mm; margin-bottom: 8mm; border-bottom: 2px dashed #000; border-radius: 0; }
+    body.preset-roll-k58 .label-card { width: 48mm; margin-bottom: 6mm; border-bottom: 2px dashed #000; padding: 5px; border-radius: 0; }
 
     /* A4 GRID PRESETS */
     body.preset-a4-2col #print-root {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      gap: 16px;
       width: 100%;
       max-width: 210mm;
     }
     body.preset-a4-3col #print-root {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 12px;
       width: 100%;
       max-width: 210mm;
     }
     body.preset-a4-4col #print-root {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 10px;
       width: 100%;
       max-width: 297mm;
     }
 
-    /* CARD STRUCTURE */
+    /* CARD STRUCTURE (High-End Realistic Thermal Decal) */
     .label-card {
       background: #ffffff;
       border: 1.5px solid #000000;
-      border-radius: 4px;
-      padding: 6px 8px;
+      border-radius: 6px;
+      padding: 8px 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -2582,24 +2726,27 @@
       page-break-inside: avoid;
       break-inside: avoid;
       position: relative;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255,255,255,0.05);
+      user-select: text;
     }
+    
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       border-bottom: 1.5px solid #000000;
-      padding-bottom: 3px;
-      margin-bottom: 4px;
-      gap: 6px;
+      padding-bottom: 4px;
+      margin-bottom: 5px;
+      gap: 8px;
     }
     .card-title {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.25;
       word-break: break-word;
       color: #000000;
       flex: 1;
+      letter-spacing: -0.01em;
     }
     .card-badges {
       display: flex;
@@ -2607,18 +2754,19 @@
       align-items: center;
       flex-shrink: 0;
     }
-    .badge-solid {
+    .badge-stage {
       background: #000000;
       color: #ffffff;
-      padding: 1px 5px;
+      padding: 1px 6px;
       border-radius: 3px;
       font-size: 11px;
       font-weight: 800;
+      letter-spacing: 0.02em;
     }
-    .badge-outline {
+    .badge-mod {
       border: 1.5px solid #000000;
       color: #000000;
-      padding: 0 4px;
+      padding: 0 5px;
       border-radius: 3px;
       font-size: 10.5px;
       font-weight: 700;
@@ -2626,19 +2774,20 @@
     
     .card-body {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
       flex: 1;
     }
     .card-qr-box {
       flex-shrink: 0;
-      width: 82px;
-      height: 82px;
+      width: 84px;
+      height: 84px;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 1px solid #000000;
-      padding: 1px;
+      border-radius: 4px;
+      padding: 2px;
       background: #ffffff;
     }
     .card-qr-box img {
@@ -2652,7 +2801,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
       font-size: 11px;
       line-height: 1.25;
       color: #000000;
@@ -2665,60 +2814,58 @@
     .card-holder {
       font-weight: 800;
       font-size: 12px;
+      letter-spacing: -0.01em;
     }
     .card-qty {
       font-weight: 800;
     }
     .card-footer-info {
-      margin-top: 3px;
-      border-top: 1px dashed #666;
-      padding-top: 2px;
+      margin-top: 4px;
+      border-top: 1px dashed #444;
+      padding-top: 3px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 9.5px;
-      color: #222;
-      font-family: monospace;
+      color: #111;
+      font-family: 'JetBrains Mono', monospace;
     }
-    
-    /* ITEMS LIST EXPANDED (IF ENABLED) */
+
+    /* EXPANDED ITEMS LIST (IF ENABLED) */
     .card-items-list {
       margin-top: 3px;
       border-top: 1px solid #000;
       padding-top: 2px;
-      font-size: 9.5px;
-      max-height: 48px;
+      font-size: 9px;
+      max-height: 44px;
       overflow: hidden;
       line-height: 1.2;
     }
 
     /* MINI PRESET (50x30mm) FINE-TUNING */
-    body.preset-label-50-30 .card-title { font-size: 10.5px; }
-    body.preset-label-50-30 .badge-solid, body.preset-label-50-30 .badge-outline { font-size: 9px; padding: 0 3px; }
-    body.preset-label-50-30 .card-qr-box { width: 56px; height: 56px; }
-    body.preset-label-50-30 .card-details { font-size: 9px; gap: 1px; }
-    body.preset-label-50-30 .card-holder { font-size: 9.5px; }
-    body.preset-label-50-30 .card-footer-info { font-size: 8px; }
+    body.preset-label-50-30 .card-title { font-size: 10px; }
+    body.preset-label-50-30 .badge-stage, body.preset-label-50-30 .badge-mod { font-size: 8.5px; padding: 0 3px; }
+    body.preset-label-50-30 .card-qr-box { width: 54px; height: 54px; }
+    body.preset-label-50-30 .card-details { font-size: 8.5px; gap: 1px; }
+    body.preset-label-50-30 .card-holder { font-size: 9px; }
+    body.preset-label-50-30 .card-footer-info { font-size: 7.5px; }
 
     /* K58 MINI ROLL FINE-TUNING */
-    body.preset-roll-k58 .card-title { font-size: 11px; }
-    body.preset-roll-k58 .card-qr-box { width: 62px; height: 62px; }
-    body.preset-roll-k58 .card-details { font-size: 9.5px; }
+    body.preset-roll-k58 .card-title { font-size: 10.5px; }
+    body.preset-roll-k58 .card-qr-box { width: 58px; height: 58px; }
+    body.preset-roll-k58 .card-details { font-size: 9px; }
 
-    /* MONOCHROME HIGH CONTRAST (THERMAL OPTIMIZED) */
+    /* HIGH CONTRAST MODE */
     body.mode-high-contrast .label-card {
       border: 2px solid #000000 !important;
       color: #000000 !important;
       background: #ffffff !important;
     }
-    body.mode-high-contrast .badge-solid {
-      background: #000000 !important;
-      color: #ffffff !important;
-    }
     body.mode-high-contrast .card-header {
       border-bottom: 2px solid #000000 !important;
     }
 
-    /* PRINT RULES */
+    /* PRINT MEDIA RULES */
     @media print {
       body {
         background: #ffffff !important;
@@ -2726,6 +2873,8 @@
         margin: 0 !important;
       }
       .no-print { display: none !important; }
+      .preview-canvas { padding: 0 !important; }
+      #print-root { transform: none !important; gap: 0 !important; }
       
       /* Single label presets: Page break after each card */
       body.preset-label-75-50 .label-card,
@@ -2737,6 +2886,7 @@
         break-after: page !important;
         box-shadow: none !important;
         border: 1.5px solid #000000 !important;
+        border-radius: 0 !important;
       }
 
       /* Roll presets */
@@ -2747,6 +2897,7 @@
         box-shadow: none !important;
         border: none !important;
         border-bottom: 2px dashed #000000 !important;
+        border-radius: 0 !important;
       }
 
       /* A4 Grids */
@@ -2757,83 +2908,104 @@
         break-after: auto !important;
         box-shadow: none !important;
         border: 1px dashed #000000 !important;
+        border-radius: 0 !important;
       }
     }
   </style>
 </head>
 <body class="preset-label-75-50 mode-high-contrast">
-  <div class="toolbar no-print">
-    <div class="toolbar-top">
-      <div class="toolbar-title">
-        <span>🖨️ In Mã QR TaskBox (${items.length} Box)</span>
+  <header class="studio-header no-print">
+    <div class="toolbar-top-row">
+      <div class="brand-group">
+        <div class="brand-icon-box">🖨️</div>
+        <div>
+          <div class="brand-title">
+            Studio In Nhãn TaskBox
+            <span class="brand-pill">${items.length} Box</span>
+            <span class="spec-pill" id="badge-dim">75 × 50 mm</span>
+          </div>
+        </div>
       </div>
-      <div class="toolbar-actions">
-        <button class="btn-print" id="btn-do-print">
-          🖨️ Bấm In Ngay (Ctrl + P)
+
+      <div class="toolbar-action-group">
+        <div class="zoom-group">
+          <button class="zoom-btn" id="btn-zoom-out" title="Thu nhỏ preview">−</button>
+          <span class="zoom-val" id="lbl-zoom">100%</span>
+          <button class="zoom-btn" id="btn-zoom-in" title="Phóng to preview">+</button>
+        </div>
+
+        <button class="btn-print-cta" id="btn-do-print">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          In Nhãn Ngay (Ctrl + P)
         </button>
       </div>
     </div>
-    <div class="toolbar-controls">
-      <div class="ctrl-group">
-        <label for="sel-preset"><b>Khổ Giấy & Loại Máy In:</b></label>
-        <select id="sel-preset" class="ctrl-select">
-          <optgroup label="🏷️ Máy in Tem Nhãn Nhiệt (Decal dán hộp)">
-            <option value="label-75-50" selected>🏷️ Decal 75x50 mm (Chuẩn dán TaskBox)</option>
-            <option value="label-50-30">🏷️ Decal 50x30 mm (Mini nhỏ gọn)</option>
-            <option value="label-80-50">🏷️ Decal 80x50 mm</option>
-            <option value="label-100-75">🏷️ Decal 100x75 mm (Lớn rõ nét)</option>
-            <option value="label-100-150">🏷️ Decal 100x150 mm (4x6" / A6)</option>
+
+    <div class="toolbar-bottom-row">
+      <div class="preset-selector-group">
+        <label for="sel-preset" class="preset-selector-label">🏷️ Loại Máy In & Khổ Giấy:</label>
+        <select id="sel-preset" class="preset-select">
+          <optgroup label="🏷️ Máy in Tem Nhãn Nhiệt (Decal Dán Từng Con)">
+            <option value="label-75-50" selected>Tem Decal 75 × 50 mm (Chuẩn dán Box)</option>
+            <option value="label-50-30">Tem Decal 50 × 30 mm (Mini nhỏ gọn)</option>
+            <option value="label-80-50">Tem Decal 80 × 50 mm</option>
+            <option value="label-100-75">Tem Decal 100 × 75 mm (Lớn rõ nét)</option>
+            <option value="label-100-150">Tem Decal 100 × 150 mm (4×6" / A6)</option>
           </optgroup>
-          <optgroup label="🧾 Máy in Hóa Đơn Nhiệt (Cuộn liên tục)">
-            <option value="roll-k80">🧾 Cuộn Nhiệt K80 (Khổ 80mm)</option>
-            <option value="roll-k58">🧾 Cuộn Nhiệt K58 (Khổ 58mm)</option>
+          <optgroup label="🧾 Máy in Hóa Đơn Nhiệt (Cuộn Bill Liên Tục)">
+            <option value="roll-k80">Cuộn Nhiệt K80 (Khổ 80mm)</option>
+            <option value="roll-k58">Cuộn Nhiệt K58 (Khổ 58mm)</option>
           </optgroup>
-          <optgroup label="📄 Máy in Thông Thường (Giấy A4 / A5)">
-            <option value="a4-2col">📄 Giấy A4 (Lưới 2 Cột)</option>
-            <option value="a4-3col">📄 Giấy A4 (Lưới 3 Cột)</option>
-            <option value="a4-4col">📄 Giấy A4 (Lưới 4 Cột - Ngang)</option>
+          <optgroup label="📄 Máy in Văn Phòng (Giấy A4 / A5)">
+            <option value="a4-2col">Giấy A4 (Lưới 2 Cột)</option>
+            <option value="a4-3col">Giấy A4 (Lưới 3 Cột)</option>
+            <option value="a4-4col">Giấy A4 (Lưới 4 Cột Ngang)</option>
           </optgroup>
         </select>
       </div>
 
-      <label class="ctrl-checkbox">
-        <input type="checkbox" id="chk-contrast" checked />
-        <span>Đậm nét (Tối ưu in nhiệt)</span>
-      </label>
+      <div class="toggles-group">
+        <label class="toggle-chip active" id="chip-contrast">
+          <input type="checkbox" id="chk-contrast" checked />
+          <span>Tối ưu in nhiệt (Đậm nét)</span>
+        </label>
 
-      <label class="ctrl-checkbox">
-        <input type="checkbox" id="chk-show-qr" checked />
-        <span>Hiện Mã QR</span>
-      </label>
+        <label class="toggle-chip active" id="chip-show-qr">
+          <input type="checkbox" id="chk-show-qr" checked />
+          <span>Mã QR</span>
+        </label>
 
-      <label class="ctrl-checkbox">
-        <input type="checkbox" id="chk-show-date" checked />
-        <span>Hiện Ngày tạo</span>
-      </label>
+        <label class="toggle-chip active" id="chip-show-date">
+          <input type="checkbox" id="chk-show-date" checked />
+          <span>Ngày tạo</span>
+        </label>
 
-      <label class="ctrl-checkbox">
-        <input type="checkbox" id="chk-show-contents" />
-        <span>Chi tiết đồ con</span>
-      </label>
+        <label class="toggle-chip" id="chip-show-contents">
+          <input type="checkbox" id="chk-show-contents" />
+          <span>Chi tiết đồ con</span>
+        </label>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <div id="print-root"></div>
+  <main class="preview-canvas">
+    <div id="print-root"></div>
+  </main>
 
   <script>
     const cardsData = ${initialCardsJson};
 
-    const PAGE_SIZES = {
-      'label-75-50': '@page { size: 75mm 50mm; margin: 1.5mm; }',
-      'label-50-30': '@page { size: 50mm 30mm; margin: 1mm; }',
-      'label-80-50': '@page { size: 80mm 50mm; margin: 2mm; }',
-      'label-100-75': '@page { size: 100mm 75mm; margin: 2mm; }',
-      'label-100-150': '@page { size: 100mm 150mm; margin: 3mm; }',
-      'roll-k80': '@page { size: 80mm auto; margin: 2mm; }',
-      'roll-k58': '@page { size: 58mm auto; margin: 1.5mm; }',
-      'a4-2col': '@page { size: A4 portrait; margin: 6mm; }',
-      'a4-3col': '@page { size: A4 portrait; margin: 5mm; }',
-      'a4-4col': '@page { size: A4 landscape; margin: 5mm; }'
+    const PRESET_SPECS = {
+      'label-75-50': { css: '@page { size: 75mm 50mm; margin: 1.5mm; }', dim: '75 × 50 mm' },
+      'label-50-30': { css: '@page { size: 50mm 30mm; margin: 1mm; }', dim: '50 × 30 mm' },
+      'label-80-50': { css: '@page { size: 80mm 50mm; margin: 2mm; }', dim: '80 × 50 mm' },
+      'label-100-75': { css: '@page { size: 100mm 75mm; margin: 2mm; }', dim: '100 × 75 mm' },
+      'label-100-150': { css: '@page { size: 100mm 150mm; margin: 3mm; }', dim: '100 × 150 mm' },
+      'roll-k80': { css: '@page { size: 80mm auto; margin: 2mm; }', dim: 'Cuộn 80mm' },
+      'roll-k58': { css: '@page { size: 58mm auto; margin: 1.5mm; }', dim: 'Cuộn 58mm' },
+      'a4-2col': { css: '@page { size: A4 portrait; margin: 6mm; }', dim: 'A4 2 Cột' },
+      'a4-3col': { css: '@page { size: A4 portrait; margin: 5mm; }', dim: 'A4 3 Cột' },
+      'a4-4col': { css: '@page { size: A4 landscape; margin: 5mm; }', dim: 'A4 4 Cột' }
     };
 
     // Load saved settings
@@ -2849,14 +3021,25 @@
     const chkShowContents = document.getElementById('chk-show-contents');
     const pageStyle = document.getElementById('page-style');
     const printRoot = document.getElementById('print-root');
+    const badgeDim = document.getElementById('badge-dim');
+    const lblZoom = document.getElementById('lbl-zoom');
 
-    if (savedSettings.preset && PAGE_SIZES[savedSettings.preset]) {
+    let currentZoom = 1;
+
+    if (savedSettings.preset && PRESET_SPECS[savedSettings.preset]) {
       selPreset.value = savedSettings.preset;
     }
     if (typeof savedSettings.contrast === 'boolean') chkContrast.checked = savedSettings.contrast;
     if (typeof savedSettings.showQr === 'boolean') chkShowQr.checked = savedSettings.showQr;
     if (typeof savedSettings.showDate === 'boolean') chkShowDate.checked = savedSettings.showDate;
     if (typeof savedSettings.showContents === 'boolean') chkShowContents.checked = savedSettings.showContents;
+
+    function syncChipStyles() {
+      document.getElementById('chip-contrast')?.classList.toggle('active', chkContrast.checked);
+      document.getElementById('chip-show-qr')?.classList.toggle('active', chkShowQr.checked);
+      document.getElementById('chip-show-date')?.classList.toggle('active', chkShowDate.checked);
+      document.getElementById('chip-show-contents')?.classList.toggle('active', chkShowContents.checked);
+    }
 
     function renderCards() {
       const preset = selPreset.value;
@@ -2865,9 +3048,13 @@
       const showDate = chkShowDate.checked;
       const showContents = chkShowContents.checked;
 
-      // Update Body Classes
+      syncChipStyles();
+
+      // Update Body Classes & Page Style
       document.body.className = 'preset-' + preset + (contrast ? ' mode-high-contrast' : '');
-      pageStyle.textContent = PAGE_SIZES[preset] || PAGE_SIZES['label-75-50'];
+      const spec = PRESET_SPECS[preset] || PRESET_SPECS['label-75-50'];
+      pageStyle.textContent = spec.css;
+      if (badgeDim) badgeDim.textContent = spec.dim;
 
       // Save to localStorage
       try {
@@ -2881,9 +3068,9 @@
       } catch(e) {}
 
       printRoot.innerHTML = cardsData.map((c, idx) => {
-        const stageBadge = c.stage ? '<span class="badge-solid">' + c.stage + '</span>' : '';
-        const modBadge = c.module ? '<span class="badge-outline">Mod: ' + c.module + '</span>' : '';
-        const anchorBadge = c.anchor ? '<span class="badge-outline">Anchor: ' + c.anchor + '</span>' : '';
+        const stageBadge = c.stage ? '<span class="badge-stage">' + c.stage + '</span>' : '';
+        const modBadge = c.module ? '<span class="badge-mod">Mod: ' + c.module + '</span>' : '';
+        const anchorBadge = c.anchor ? '<span class="badge-mod">Anchor: ' + c.anchor + '</span>' : '';
 
         const qrHtml = showQr ? '<div class="card-qr-box"><img src="' + c.qrUrl + '" alt="QR" /></div>' : '';
         
@@ -2928,7 +3115,24 @@
     chkShowDate.addEventListener('change', renderCards);
     chkShowContents.addEventListener('change', renderCards);
 
-    document.getElementById('btn-do-print').addEventListener('click', () => {
+    // Zoom Controls
+    document.getElementById('btn-zoom-in')?.addEventListener('click', () => {
+      if (currentZoom < 2.0) {
+        currentZoom = Math.min(2.0, Math.round((currentZoom + 0.15) * 100) / 100);
+        printRoot.style.transform = 'scale(' + currentZoom + ')';
+        if (lblZoom) lblZoom.textContent = Math.round(currentZoom * 100) + '%';
+      }
+    });
+
+    document.getElementById('btn-zoom-out')?.addEventListener('click', () => {
+      if (currentZoom > 0.5) {
+        currentZoom = Math.max(0.5, Math.round((currentZoom - 0.15) * 100) / 100);
+        printRoot.style.transform = 'scale(' + currentZoom + ')';
+        if (lblZoom) lblZoom.textContent = Math.round(currentZoom * 100) + '%';
+      }
+    });
+
+    document.getElementById('btn-do-print')?.addEventListener('click', () => {
       window.print();
     });
 
