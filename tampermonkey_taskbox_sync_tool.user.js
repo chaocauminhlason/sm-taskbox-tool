@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sondeptraidatimthayban
 // @namespace    https://sm.config.inc/
-// @version      2.19.2
+// @version      2.19.3
 // @description  Tự động đọc Google Sheet và quản lý, đồng bộ TaskBox trên Scenario Manager
 // @author       Sondeptrainhatquadat
 // @match        https://sm.config.inc/*
@@ -1654,9 +1654,8 @@
         if (stockCheck.hasShortage) {
           const links = stockCheck.shortageList.map(s => {
             const label = s.name.length > 16 ? `${s.name.slice(0, 14)}...` : s.name;
-            const objParam = s.objectId || s.name;
-            const linkUrl = `/object?filter_type=${encodeURIComponent(objParam)}`;
-            return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang sửa số lượng đồ trên web">⚠️ ${label} (#${s.objectId}) ↗</a>`;
+            const linkUrl = s.objectId ? `/object_detail/${encodeURIComponent(s.objectId)}` : `/object?filter_type=${encodeURIComponent(s.name)}`;
+            return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang chi tiết sửa Object">⚠️ ${label} (#${s.objectId}) ↗</a>`;
           }).join(' ');
           shortageBadge = ` ${links}`;
         }
@@ -3511,7 +3510,8 @@
       const holderDisplay = holderRaw ? `<span style="background:#1e293b; padding:2px 6px; border-radius:4px; color:#38bdf8; font-weight:600;">👤 ${holderRaw}</span>` : `<span style="color:#64748b; font-size:11px;">Chưa gán</span>`;
       
       const anchorRaw = b.anchor_object_id || '';
-      const anchorDisplay = (anchorRaw && anchorRaw !== '-') ? `<code>#${anchorRaw.replace(/^#/, '')}</code>` : `<span style="color:#64748b;">-</span>`;
+      const anchorClean = anchorRaw.replace(/^#/, '');
+      const anchorDisplay = (anchorRaw && anchorRaw !== '-') ? `<a href="/object_detail/${encodeURIComponent(anchorClean)}" target="_blank" style="color:#38bdf8; text-decoration:none; font-family:monospace; font-weight:600;" title="Mở chi tiết Anchor Object"><code>#${anchorClean} ↗</code></a>` : `<span style="color:#64748b;">-</span>`;
 
       const contents = b.contents || [];
       const totalQty = contents.reduce((sum, c) => sum + (c.quantity || 1), 0);
@@ -3547,9 +3547,8 @@
       if (stockCheck.hasShortage) {
         const links = stockCheck.shortageList.map(s => {
           const label = s.name.length > 16 ? `${s.name.slice(0, 14)}...` : s.name;
-          const objParam = s.objectId || s.name;
-          const linkUrl = `/object?filter_type=${encodeURIComponent(objParam)}`;
-          return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang sửa số lượng đồ trên web">⚠️ ${label} (#${s.objectId}) ↗</a>`;
+          const linkUrl = s.objectId ? `/object_detail/${encodeURIComponent(s.objectId)}` : `/object?filter_type=${encodeURIComponent(s.name)}`;
+          return `<a href="${linkUrl}" target="_blank" class="sm-badge" style="background:#78350f; color:#fef08a; border:1px solid #d97706; text-decoration:none; font-size:10px; padding:2px 5px; border-radius:4px; margin-left:3px; margin-top:2px; display:inline-block;" title="⚠️ CẢNH BÁO THIẾU KHO:\n${s.name} (#${s.objectId})\n• Cần: ${s.needed}\n• Kho còn: ${s.available} (tại ${s.whereabouts})\n• Thiếu: ${s.shortage}\n\n👉 Bấm để mở trang chi tiết sửa Object">⚠️ ${label} (#${s.objectId}) ↗</a>`;
         }).join(' ');
         shortageBadge = ` ${links}`;
       }
